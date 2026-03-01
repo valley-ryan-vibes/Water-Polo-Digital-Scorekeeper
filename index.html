@@ -18,15 +18,19 @@
         select { padding: 10px; font-size: 1.1em; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; }
         
         /* Dashboard */
-        .dashboard { display: flex; justify-content: space-around; background: #2c3e50; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .dashboard { display: flex; justify-content: space-around; align-items: center; background: #2c3e50; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .clock-section { display: flex; flex-direction: column; align-items: center; }
         .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 10px 20px; border-radius: 5px; }
         .shot-clock { color: #f1c40f; }
+        .quarter-badge { background: #3498db; padding: 5px 15px; border-radius: 15px; font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
         
         /* Game Controls */
         .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 800px; margin: 0 auto; }
         .btn-white { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; }
         .btn-dark { background-color: #2c3e50; color: white; }
         .btn-clock { background-color: #e67e22; grid-column: span 2; }
+        .btn-timeout { background-color: #f39c12; }
+        .btn-quarter { background-color: #9b59b6; grid-column: span 2; }
         
         /* Modals & Keypad */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -37,27 +41,42 @@
         .keys .btn-clear { background: #e74c3c; }
         .keys .btn-enter { background: #2ecc71; grid-column: span 2; }
 
-        /* Camera Modal */
+        /* Camera Modal & Warning Modal */
         .camera-box { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; }
         video { width: 100%; border-radius: 5px; background: black; margin-bottom: 15px; }
-
-        /* Foul Warning Modal */
         .warning-box { background: #c0392b; color: white; padding: 30px; border-radius: 10px; width: 80%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .warning-box h1 { font-size: 4em; margin: 0; }
-        .warning-box h2 { margin-top: 10px; }
         .warning-box button { background: white; color: #c0392b; width: 100%; margin-top: 20px; font-size: 1.2em; }
 
-        /* Printable Scorecard */
-        #print-view { background: white; padding: 20px; text-align: left; max-width: 800px; margin: 0 auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-        th { background-color: #eee; }
+        /* Real-Time Scorecard Container */
+        .scorecard-wrapper {
+            margin-top: 30px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #bdc3c7;
+            overflow-x: auto;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
         
+        .paper-scorecard { width: 100%; min-width: 700px; border-collapse: collapse; text-align: center; font-size: 0.9em; }
+        .paper-scorecard th { background-color: #ecf0f1; border: 1px solid #7f8c8d; padding: 5px; }
+        .paper-scorecard td { border: 1px solid #7f8c8d; padding: 3px; vertical-align: top; }
+        
+        /* Inner tables for Roster Fouls & Game Progress */
+        .roster-table, .progress-table { width: 100%; border-collapse: collapse; }
+        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 4px; height: 20px; }
+        .roster-table th, .progress-table th { background-color: #f9f9f9; border: 1px solid #ccc; font-size: 0.8em; }
+        .foul-box { width: 20px; font-weight: bold; color: #c0392b; }
+        
+        /* Quarter Divider Row styling */
+        .divider-row td { background-color: #34495e; color: white; font-weight: bold; padding: 8px; letter-spacing: 2px; }
+
         /* Print Styles */
         @media print {
             body { background: white; padding: 0; }
-            #dashboard-screen, #setup-screen, .modal-overlay, .no-print { display: none !important; }
-            #print-view { display: block !important; }
+            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .no-print { display: none !important; }
+            .scorecard-wrapper { border: none; margin-top: 0; padding: 0; }
             @page { margin: 0.5cm; }
         }
     </style>
@@ -107,12 +126,12 @@
 
     <div id="dashboard-screen" class="hidden">
         <div class="dashboard">
-            <div>
-                <h3>GAME CLOCK</h3>
+            <div class="clock-section">
+                <div id="quarter-display" class="quarter-badge">Q1</div>
                 <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
             </div>
-            <div>
-                <h3>SHOT CLOCK</h3>
+            <div class="clock-section">
+                <div style="font-weight: bold; margin-bottom: 5px;">SHOT</div>
                 <div id="shot-clock" class="clock shot-clock" onclick="resetShotClock()">30</div>
             </div>
         </div>
@@ -126,272 +145,5 @@
             <button class="btn-dark" onclick="openKeypad('Dark', 'Exclusion')">Dark Exclusion (E)</button>
             <button class="btn-white" onclick="openKeypad('White', 'Penalty')">White Penalty (P)</button>
             <button class="btn-dark" onclick="openKeypad('Dark', 'Penalty')">Dark Penalty (P)</button>
-        </div>
-        
-        <br><br>
-        <button style="background-color: #c0392b; width: 100%; max-width: 800px;" onclick="generateScorecard()">End Game & Print</button>
-    </div>
-
-    <div id="keypad-modal" class="modal-overlay hidden">
-        <div class="keypad">
-            <h3 id="keypad-title" style="color: #333;">Enter Cap #</h3>
-            <div id="keypad-display" class="keypad-display"></div>
-            <div class="keys">
-                <button onclick="pressKey(1)">1</button>
-                <button onclick="pressKey(2)">2</button>
-                <button onclick="pressKey(3)">3</button>
-                <button onclick="pressKey(4)">4</button>
-                <button onclick="pressKey(5)">5</button>
-                <button onclick="pressKey(6)">6</button>
-                <button onclick="pressKey(7)">7</button>
-                <button onclick="pressKey(8)">8</button>
-                <button onclick="pressKey(9)">9</button>
-                <button class="btn-clear" onclick="clearKeypad()">C</button>
-                <button onclick="pressKey(0)">0</button>
-                <button class="btn-clear" onclick="closeKeypad()">X</button>
-                <button class="btn-enter" onclick="submitEvent()">ENTER</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="foul-warning-modal" class="modal-overlay hidden">
-        <div class="warning-box">
-            <h1>🚨</h1>
-            <h2>PLAYER DISQUALIFIED</h2>
-            <p id="foul-warning-text" style="font-size: 1.5em; font-weight: bold;"></p>
-            <p>Wave the red flag. This player has 3 major fouls.</p>
-            <button onclick="closeWarning()">Acknowledge</button>
-        </div>
-    </div>
-
-    <div id="print-view" class="hidden">
-        <h1 style="text-align: center;">Official Progress of Game</h1>
-        
-        <button class="no-print" onclick="window.print()" style="background-color: #2980b9; width: 100%; margin-bottom: 10px;">🖨️ Print Document</button>
-        <button class="no-print" onclick="resetGame()" style="background-color: #27ae60; width: 100%; margin-bottom: 20px;">🔄 Start New Game</button>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Team</th>
-                    <th>Cap #</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody id="print-log-body">
-                </tbody>
-        </table>
-    </div>
-
-    <script>
-        let gameTime = 360; 
-        let shotTime = 30;
-        let timerInterval = null;
-        let isRunning = false;
-        let gameLog = [];
-        let foulTracker = { 'White': {}, 'Dark': {} };
-
-        let pendingTeam = '';
-        let pendingEvent = '';
-        let currentCapInput = '';
-
-        // --- SETUP LOGIC ---
-        function updateDefaultTime() {
-            // Automatically switch the quarter length dropdown to match the selected age group
-            let selectedAgeGroupTime = document.getElementById('age-group').value;
-            document.getElementById('quarter-length').value = selectedAgeGroupTime;
-        }
-
-        // --- CAMERA LOGIC ---
-        let currentScanTeam = '';
-        let cameraStream = null;
-
-        async function openCamera(team) {
-            currentScanTeam = team;
-            document.getElementById('camera-title').innerText = `Take Photo of ${team} Roster`;
-            document.getElementById('camera-modal').classList.remove('hidden');
-            
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                document.getElementById('camera-feed').srcObject = cameraStream;
-            } catch (err) {
-                alert("Please allow camera permissions in your browser to use this feature.");
-                closeCamera();
-            }
-        }
-
-        function takePhoto() {
-            closeCamera();
-            document.getElementById(`${currentScanTeam.toLowerCase()}-status`).innerText = `Scanning photo... extracting names...`;
-            setTimeout(() => {
-                document.getElementById(`${currentScanTeam.toLowerCase()}-status`).innerText = `✅ ${currentScanTeam} Roster Uploaded!`;
-            }, 1500);
-        }
-
-        function closeCamera() {
-            document.getElementById('camera-modal').classList.add('hidden');
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-        }
-
-        // --- START & RESET GAME LOGIC ---
-        function startGame() {
-            // Set game time based on user dropdown override selection
-            let selectedMinutes = parseInt(document.getElementById('quarter-length').value);
-            gameTime = selectedMinutes * 60;
-            shotTime = 30;
-            
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('dashboard-screen').classList.remove('hidden');
-            updateDisplay();
-        }
-
-        function resetGame() {
-            if (isRunning) toggleClock();
-            
-            gameLog = [];
-            foulTracker = { 'White': {}, 'Dark': {} };
-            
-            document.getElementById('dark-status').innerText = '';
-            document.getElementById('white-status').innerText = '';
-            
-            // Reset Dropdowns to default (14U / 6 minutes)
-            document.getElementById('age-group').value = "6";
-            document.getElementById('quarter-length').value = "6";
-            
-            document.getElementById('print-view').classList.add('hidden');
-            document.getElementById('setup-screen').classList.remove('hidden');
-        }
-
-        // --- CLOCK LOGIC ---
-        function updateDisplay() {
-            let m = Math.floor(gameTime / 60);
-            let s = gameTime % 60;
-            document.getElementById("game-clock").innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-            document.getElementById("shot-clock").innerText = shotTime;
-        }
-
-        function toggleClock() {
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(timerInterval);
-                document.getElementById('clock-btn').innerText = "START CLOCKS";
-                document.getElementById('clock-btn').style.backgroundColor = "#27ae60";
-            } else {
-                isRunning = true;
-                document.getElementById('clock-btn').innerText = "STOP (WHISTLE)";
-                document.getElementById('clock-btn').style.backgroundColor = "#c0392b";
-                timerInterval = setInterval(() => {
-                    if (gameTime > 0) gameTime--;
-                    if (shotTime > 0) shotTime--;
-                    updateDisplay();
-                    if (gameTime === 0 || shotTime === 0) toggleClock();
-                }, 1000);
-            }
-        }
-
-        function resetShotClock() {
-            shotTime = 30;
-            updateDisplay();
-        }
-
-        // --- KEYPAD LOGIC ---
-        function openKeypad(team, event) {
-            if (isRunning) toggleClock(); 
-            pendingTeam = team;
-            pendingEvent = event;
-            currentCapInput = '';
-            document.getElementById('keypad-title').innerText = `${team} ${event} - Cap #`;
-            document.getElementById('keypad-display').innerText = '';
-            document.getElementById('keypad-modal').classList.remove('hidden');
-        }
-
-        function pressKey(num) {
-            if (currentCapInput.length < 2) { 
-                currentCapInput += num.toString();
-                document.getElementById('keypad-display').innerText = currentCapInput;
-            }
-        }
-
-        function clearKeypad() {
-            currentCapInput = '';
-            document.getElementById('keypad-display').innerText = '';
-        }
-
-        function closeKeypad() {
-            document.getElementById('keypad-modal').classList.add('hidden');
-        }
-
-        function submitEvent() {
-            if (currentCapInput === '') return;
-            
-            let m = Math.floor(gameTime / 60);
-            let s = gameTime % 60;
-            let timeString = `${m}:${s < 10 ? '0' : ''}${s}`;
-
-            let remark = 'G';
-            if (pendingEvent === 'Exclusion' || pendingEvent === 'Penalty') {
-                remark = (pendingEvent === 'Exclusion') ? 'E' : 'P';
-                
-                if (!foulTracker[pendingTeam][currentCapInput]) {
-                    foulTracker[pendingTeam][currentCapInput] = 0;
-                }
-                
-                foulTracker[pendingTeam][currentCapInput]++;
-
-                if (foulTracker[pendingTeam][currentCapInput] >= 3) {
-                    document.getElementById('foul-warning-text').innerText = `${pendingTeam.toUpperCase()} TEAM - CAP #${currentCapInput}`;
-                    document.getElementById('foul-warning-modal').classList.remove('hidden');
-                }
-            }
-
-            gameLog.push({ time: timeString, team: pendingTeam.charAt(0), cap: currentCapInput, remark: remark });
-            
-            resetShotClock();
-            closeKeypad();
-        }
-
-        function closeWarning() {
-            document.getElementById('foul-warning-modal').classList.add('hidden');
-        }
-
-        document.addEventListener('keydown', function(event) {
-            if (!document.getElementById('keypad-modal').classList.contains('hidden')) {
-                if (event.key === 'Enter') {
-                    event.preventDefault(); 
-                    submitEvent();
-                } else if (event.key >= '0' && event.key <= '9') {
-                    pressKey(event.key);
-                } else if (event.key === 'Backspace') {
-                    clearKeypad();
-                } else if (event.key === 'Escape') {
-                    closeKeypad();
-                }
-            }
-        });
-
-        // --- PRINT LOGIC ---
-        function generateScorecard() {
-            if (isRunning) toggleClock();
-            document.getElementById('dashboard-screen').classList.add('hidden');
-            document.getElementById('print-view').classList.remove('hidden');
-
-            let tbody = document.getElementById('print-log-body');
-            tbody.innerHTML = ''; 
-
-            gameLog.forEach(entry => {
-                let row = `<tr>
-                    <td>${entry.time}</td>
-                    <td>${entry.team}</td>
-                    <td>${entry.cap}</td>
-                    <td><strong>${entry.remark}</strong></td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-    </script>
-</body>
-</html>
+            <button class="btn-timeout" onclick="recordTimeout('White')">White Timeout</button>
+            <button class="btn-timeout" onclick="recordTimeout('Dark
