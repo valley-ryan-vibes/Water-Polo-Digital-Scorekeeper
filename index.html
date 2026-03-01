@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Desk Duty: Pro Simulator</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <style>
         /* Core Styles */
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; text-align: center; }
@@ -12,25 +15,42 @@
         button:hover { opacity: 0.8; }
         
         /* Setup Screen */
-        #setup-screen { background: white; padding: 40px; border-radius: 10px; max-width: 500px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .camera-btn { background-color: #34495e; width: 100%; margin-top: 15px; display: block; }
-        .settings-group { margin: 25px 0; background: #ecf0f1; padding: 20px; border-radius: 5px; text-align: left; border: 1px solid #bdc3c7; }
-        select { padding: 10px; font-size: 1.1em; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; }
+        #setup-screen { background: white; padding: 40px; border-radius: 10px; max-width: 600px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .camera-btn { background-color: #34495e; width: 100%; margin-top: 10px; display: block; }
+        .combo-btn { background-color: #2980b9; }
+        .white-btn { background-color: #7f8c8d; }
         
-        /* Dashboard */
-        .dashboard { display: flex; justify-content: space-around; align-items: center; background: #2c3e50; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .settings-group { margin: 20px 0; background: #ecf0f1; padding: 20px; border-radius: 5px; text-align: left; border: 1px solid #bdc3c7; }
+        select, input[type="text"] { padding: 10px; font-size: 1.1em; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
+        
+        /* Dashboard & Top Scoreboard */
+        .dashboard { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 10px; max-width: 950px; margin-left: auto; margin-right: auto; }
         .clock-section { display: flex; flex-direction: column; align-items: center; }
-        .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 10px 20px; border-radius: 5px; }
-        .shot-clock { color: #f1c40f; }
+        .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 10px 20px; border-radius: 5px; min-width: 140px; }
+        .shot-clock { color: #f1c40f; min-width: 80px; }
         .quarter-badge { background: #3498db; padding: 5px 15px; border-radius: 15px; font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
         
+        .team-score-box { padding: 15px; border-radius: 10px; width: 140px; text-align: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .white-score-box { background-color: #ecf0f1; color: #2c3e50; }
+        .dark-score-box { background-color: #34495e; color: white; border: 2px solid #ecf0f1; }
+        .team-color-label { font-weight: bold; font-size: 1em; letter-spacing: 2px; }
+        .team-custom-name { font-weight: bold; font-size: 1.3em; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .team-score-num { font-size: 4.5em; font-weight: bold; font-family: monospace; line-height: 1; }
+        
+        /* Clock Controls Mini-Menu */
+        .clock-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; max-width: 950px; margin-left: auto; margin-right: auto; background: #ecf0f1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; }
+        .clock-btn-sm { font-size: 1em; padding: 10px 15px; color: #2c3e50; }
+        .clock-btn-shot { background-color: #f1c40f; }
+        .clock-btn-edit { background-color: #bdc3c7; }
+
         /* Game Controls */
         .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 800px; margin: 0 auto; }
         .btn-white { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; }
         .btn-dark { background-color: #2c3e50; color: white; }
-        .btn-clock { background-color: #e67e22; grid-column: span 2; }
+        .btn-clock { background-color: #e67e22; grid-column: span 2; font-size: 1.3em; padding: 20px; }
         .btn-timeout { background-color: #f39c12; }
-        .btn-quarter { background-color: #9b59b6; grid-column: span 2; }
+        .btn-quarter { background-color: #9b59b6; }
+        .btn-undo { background-color: #e74c3c; }
         
         /* Modals & Keypad */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -39,9 +59,8 @@
         .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .keys button { background: #3498db; font-size: 1.5em; padding: 20px 0; }
         .keys .btn-clear { background: #e74c3c; }
-        .keys .btn-enter { background: #2ecc71; grid-column: span 2; }
+        .keys .btn-enter { background: #2ecc71; grid-column: span 3; } 
         
-        /* Camera Modal & Warning Modal */
         .camera-box { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; }
         video { width: 100%; border-radius: 5px; background: black; margin-bottom: 15px; }
         .warning-box { background: #c0392b; color: white; padding: 30px; border-radius: 10px; width: 80%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -50,29 +69,50 @@
 
         /* Real-Time Scorecard Container */
         .scorecard-wrapper { margin-top: 30px; background: #fff; padding: 15px; border-radius: 5px; border: 2px solid #bdc3c7; overflow-x: auto; touch-action: pan-x pan-y pinch-zoom; }
-        .view-controls { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-        .view-btn { background-color: #7f8c8d; padding: 10px 20px; font-size: 1em; border-radius: 5px; }
-        .active-view { background-color: #f1c40f; color: #2c3e50; }
         
-        .paper-scorecard { width: 100%; min-width: 800px; border-collapse: collapse; text-align: center; font-size: 0.9em; }
+        /* View Toggle Tabs */
+        .view-controls-container { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 15px; background: #ecf0f1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7;}
+        .view-controls { display: flex; align-items: center; gap: 5px; margin: 5px 0; }
+        .view-controls span { font-weight: bold; margin-right: 5px; color: #2c3e50; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        .view-btn { background-color: #bdc3c7; color: #2c3e50; padding: 8px 15px; font-size: 0.95em; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; }
+        .active-view { background-color: #f1c40f !important; color: #2c3e50 !important; box-shadow: inset 0 3px 5px rgba(0,0,0,0.2); }
+        
+        /* Summary Score Table */
+        .score-summary-table { width: 100%; max-width: 700px; margin: 0 auto 15px auto; border-collapse: collapse; text-align: center; font-size: 1em; border: 2px solid #333; }
+        .score-summary-table th, .score-summary-table td { border: 1px solid #7f8c8d; padding: 8px; }
+        .score-summary-table th { background-color: #ecf0f1; font-size: 0.9em; }
+        .score-summary-table .final-col { font-weight: bold; font-size: 1.2em; background-color: #f9f9f9; }
+        
+        .paper-scorecard { width: 100%; min-width: 900px; border-collapse: collapse; text-align: center; font-size: 0.9em; border: 2px solid #333; }
         .paper-scorecard > tbody > tr > td { border: 1px solid #7f8c8d; vertical-align: top; padding: 0; }
         
-        /* Inner tables for Roster Fouls & Game Progress */
+        /* Inner tables */
         .roster-table, .progress-table { width: 100%; border-collapse: collapse; }
-        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 6px 4px; height: 25px; }
-        .roster-table th, .progress-table th { background-color: #ecf0f1; border: 1px solid #ccc; font-size: 0.85em; position: sticky; top: 0; z-index: 10; padding: 8px; }
+        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 4px; height: 25px; vertical-align: middle; }
+        .roster-table th, .progress-table th { background-color: #ecf0f1; border: 1px solid #ccc; font-size: 0.9em; position: sticky; top: 0; z-index: 10; padding: 6px; }
         
+        /* Dynamic Columns for Tabbed Views */
+        .goal-col { background-color: #fdfefe; }
+        .foul-col { background-color: #fef9e7; }
         .foul-box { width: 25px; font-weight: bold; color: #c0392b; }
-        .name-cell { text-align: left; min-width: 120px; background-color: #fafafa; cursor: text; }
-        .name-cell:focus { background-color: #fff; outline: 2px solid #3498db; }
+        .goal-box { width: 25px; font-weight: bold; color: #2980b9; }
+        .cap-cell { width: 30px; font-weight: bold; text-align: center; }
+        .name-cell { min-width: 120px; text-align: left; }
+        
+        .editable-cell { background-color: #fafafa; cursor: text; transition: 0.2s; }
+        .editable-cell:hover { background-color: #e8f4f8; }
+        .editable-cell:focus { background-color: #fff; outline: 2px solid #3498db; }
+        
         .divider-row td { background-color: #34495e; color: white; font-weight: bold; padding: 8px; letter-spacing: 2px; }
 
         /* Print Styles */
         @media print {
             body { background: white; padding: 0; }
-            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .view-controls { display: none !important; }
+            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .view-controls-container, .clock-controls, .no-print { display: none !important; }
             .scorecard-wrapper { border: none; margin-top: 0; padding: 0; overflow: visible; }
             #col-white, #col-dark { display: table-cell !important; }
+            .goal-col, .foul-col { display: table-cell !important; }
+            .team-header-th { colspan: 10 !important; }
             @page { margin: 0.5cm; }
         }
     </style>
@@ -82,6 +122,14 @@
     <div id="setup-screen">
         <h2>Pre-Game Setup</h2>
         
+        <div class="settings-group">
+            <label for="setup-white-name" style="font-weight: bold; color: #7f8c8d;">WHITE Team Name:</label>
+            <input type="text" id="setup-white-name" value="White Team" placeholder="e.g., Davis WPC">
+            
+            <label for="setup-dark-name" style="font-weight: bold; color: #34495e;">DARK Team Name:</label>
+            <input type="text" id="setup-dark-name" value="Dark Team" placeholder="e.g., Newport">
+        </div>
+
         <div class="settings-group">
             <label for="age-group" style="font-weight: bold;">Age Group:</label>
             <select id="age-group" onchange="updateDefaultTime()">
@@ -97,15 +145,26 @@
                 <option value="7">7 Minutes</option>
                 <option value="8">8 Minutes</option>
             </select>
+            
+            <label for="track-assists" style="font-weight: bold; color: #2980b9;">Track Assists (Optional):</label>
+            <select id="track-assists">
+                <option value="no" selected>No (Standard)</option>
+                <option value="yes">Yes (Ask for Assist after Goals)</option>
+            </select>
         </div>
 
-        <p>Scan the paper scorecards to upload rosters.</p>
+        <p>Scan paper scorecards to extract rosters. <em>(Hold camera steady and upright)</em></p>
         
-        <button class="camera-btn" onclick="openCamera('Dark')">📷 Scan DARK Team Roster</button>
-        <p id="dark-status" style="color: green; font-weight: bold; margin: 5px 0 15px 0;"></p>
+        <button class="camera-btn combo-btn" onclick="openCamera('Combo')">📷 Scan COMBO Scoresheet (Both Teams)</button>
+        <p id="combo-status" style="color: #2980b9; font-weight: bold; margin: 5px 0 15px 0;"></p>
+        
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
 
-        <button class="camera-btn" style="background-color:#7f8c8d;" onclick="openCamera('White')">📷 Scan WHITE Team Roster</button>
-        <p id="white-status" style="color: green; font-weight: bold; margin: 5px 0 15px 0;"></p>
+        <button class="camera-btn" onclick="openCamera('Dark')">📷 Scan DARK Team Only</button>
+        <p id="dark-status" style="color: #34495e; font-weight: bold; margin: 5px 0 15px 0;"></p>
+
+        <button class="camera-btn white-btn" onclick="openCamera('White')">📷 Scan WHITE Team Only</button>
+        <p id="white-status" style="color: #7f8c8d; font-weight: bold; margin: 5px 0 15px 0;"></p>
 
         <br>
         <button style="background-color: #27ae60; width: 100%; font-size: 1.3em;" id="start-btn" onclick="startGame()">Start Game</button>
@@ -115,24 +174,44 @@
         <div class="camera-box">
             <h3 id="camera-title">Take Photo of Roster</h3>
             <video id="camera-feed" autoplay playsinline></video>
-            <button style="background-color: #27ae60; width: 100%;" onclick="takePhoto()">📸 SNAP PHOTO</button>
+            <canvas id="snapshot-canvas" class="hidden"></canvas>
+            <button style="background-color: #27ae60; width: 100%;" onclick="takePhoto()">📸 SNAP PHOTO & EXTRACT</button>
             <button style="background-color: #c0392b; width: 100%;" onclick="closeCamera()">Cancel</button>
         </div>
     </div>
 
     <div id="dashboard-screen" class="hidden">
         <div class="dashboard">
+            <div class="team-score-box white-score-box">
+                <div class="team-color-label">WHITE</div>
+                <div id="dash-name-white" class="team-custom-name">White Team</div>
+                <div id="top-score-white" class="team-score-num">0</div>
+            </div>
+            
             <div class="clock-section">
                 <div id="quarter-display" class="quarter-badge">Q1</div>
                 <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
             </div>
             <div class="clock-section">
                 <div style="font-weight: bold; margin-bottom: 5px;">SHOT</div>
-                <div id="shot-clock" class="clock shot-clock" onclick="resetShotClock()">30</div>
+                <div id="shot-clock" class="clock shot-clock">30</div>
+            </div>
+            
+            <div class="team-score-box dark-score-box">
+                <div class="team-color-label">DARK</div>
+                <div id="dash-name-dark" class="team-custom-name">Dark Team</div>
+                <div id="top-score-dark" class="team-score-num">0</div>
             </div>
         </div>
 
         <button class="btn-clock" onclick="toggleClock()" id="clock-btn">START CLOCKS</button>
+
+        <div class="clock-controls no-print">
+            <button class="clock-btn-sm clock-btn-edit" onclick="editGameClock()">✏️ Edit Game Clock</button>
+            <button class="clock-btn-sm clock-btn-shot" onclick="setShotClock(30)">🔄 Shot 30s</button>
+            <button class="clock-btn-sm clock-btn-shot" onclick="setShotClock(20)">🔄 Shot 20s</button>
+            <button class="clock-btn-sm clock-btn-edit" style="color:white; background:#e74c3c;" onclick="setShotClock('OFF')">❌ Shot OFF</button>
+        </div>
 
         <div class="controls-grid">
             <button class="btn-white" onclick="openKeypad('White', 'Goal')">White Goal</button>
@@ -144,17 +223,55 @@
             <button class="btn-timeout" onclick="recordTimeout('White')">White Timeout</button>
             <button class="btn-timeout" onclick="recordTimeout('Dark')">Dark Timeout</button>
             
-            <button class="btn-quarter" onclick="advanceQuarter()">End Period / Next Quarter ⏩</button>
+            <button class="btn-quarter" onclick="advanceQuarter()">End Period ⏩</button>
+            <button class="btn-undo" onclick="undoLastEntry()">Undo Last Entry ↩️</button>
         </div>
         
         <div class="scorecard-wrapper">
-            <h2 style="margin: 0 0 15px 0;">Official Progress of Game</h2>
             
-            <div class="view-controls no-print">
-                <button class="view-btn active-view" id="btn-view-all" onclick="setScorecardView('all')">Show Full Table</button>
-                <button class="view-btn" id="btn-view-white" style="background-color: #ecf0f1; color: #333; border: 1px solid #bdc3c7;" onclick="setScorecardView('white')">White Team View</button>
-                <button class="view-btn" id="btn-view-dark" style="background-color: #2c3e50; color: white;" onclick="setScorecardView('dark')">Dark Team View</button>
+            <div class="view-controls-container no-print">
+                <div class="view-controls">
+                    <span>Teams:</span>
+                    <button class="view-btn active-view" id="btn-view-all" onclick="setScorecardView('all')">Both Teams</button>
+                    <button class="view-btn" id="btn-view-white" onclick="setScorecardView('white')">White Only</button>
+                    <button class="view-btn" id="btn-view-dark" onclick="setScorecardView('dark')">Dark Only</button>
+                </div>
+                <div class="view-controls">
+                    <span>Roster Details:</span>
+                    <button class="view-btn active-view" id="tab-goals" onclick="setRosterView('goals')">Scoring View</button>
+                    <button class="view-btn" id="tab-fouls" onclick="setRosterView('fouls')">Penalty View</button>
+                    <button class="view-btn" id="tab-both" onclick="setRosterView('both')">Show Both</button>
+                </div>
             </div>
+            
+            <table class="score-summary-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align: middle; font-size: 1.1em;">TEAM</th>
+                        <th colspan="5">SCORE BY QUARTER</th>
+                        <th rowspan="2" style="vertical-align: middle; font-size: 1.1em;">FINAL</th>
+                    </tr>
+                    <tr><th>1</th><th>2</th><th>3</th><th>4</th><th>OT</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight:bold; background:#ecf0f1; color:#2c3e50;">
+                            <div style="font-size:0.8em; color:#7f8c8d;">WHITE</div>
+                            <div id="sum-name-white">White Team</div>
+                        </td>
+                        <td id="sum-W-1">0</td><td id="sum-W-2"></td><td id="sum-W-3"></td><td id="sum-W-4"></td><td id="sum-W-5"></td>
+                        <td id="sum-W-final" class="final-col">0</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:bold; background:#2c3e50; color:white;">
+                            <div style="font-size:0.8em; color:#bdc3c7;">DARK</div>
+                            <div id="sum-name-dark">Dark Team</div>
+                        </td>
+                        <td id="sum-D-1">0</td><td id="sum-D-2"></td><td id="sum-D-3"></td><td id="sum-D-4"></td><td id="sum-D-5"></td>
+                        <td id="sum-D-final" class="final-col">0</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <button class="no-print" onclick="window.print()" style="background-color: #2980b9; padding: 10px; margin-bottom: 10px;">🖨️ Print Final Scorecard</button>
             <button class="no-print" onclick="resetGame()" style="background-color: #c0392b; padding: 10px; margin-bottom: 10px;">🔄 New Game</button>
@@ -165,8 +282,17 @@
                         <td id="col-white" width="35%">
                             <table class="roster-table">
                                 <thead>
-                                    <tr><th colspan="5">WHITE TEAM</th></tr>
-                                    <tr><th>Cap</th><th>Name</th><th>1</th><th>2</th><th>3</th></tr>
+                                    <tr><th colspan="7" class="team-header-th">WHITE: <span id="table-name-white">White Team</span></th></tr>
+                                    <tr>
+                                        <th rowspan="2">Cap</th>
+                                        <th rowspan="2" style="width: 120px;">Name</th>
+                                        <th colspan="5" class="goal-col">Goals by Quarter</th>
+                                        <th colspan="3" class="foul-col">Fouls</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="goal-col">1</th><th class="goal-col">2</th><th class="goal-col">3</th><th class="goal-col">4</th><th class="goal-col">OT</th>
+                                        <th class="foul-col">1</th><th class="foul-col">2</th><th class="foul-col">3</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="white-roster-body"></tbody>
                             </table>
@@ -183,8 +309,17 @@
                         <td id="col-dark" width="35%">
                             <table class="roster-table">
                                 <thead>
-                                    <tr><th colspan="5" style="background-color: #2c3e50; color: white;">DARK TEAM</th></tr>
-                                    <tr><th>Cap</th><th>Name</th><th>1</th><th>2</th><th>3</th></tr>
+                                    <tr><th colspan="7" class="team-header-th" style="background-color: #2c3e50; color: white;">DARK: <span id="table-name-dark">Dark Team</span></th></tr>
+                                    <tr>
+                                        <th rowspan="2">Cap</th>
+                                        <th rowspan="2" style="width: 120px;">Name</th>
+                                        <th colspan="5" class="goal-col">Goals by Quarter</th>
+                                        <th colspan="3" class="foul-col">Fouls</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="goal-col">1</th><th class="goal-col">2</th><th class="goal-col">3</th><th class="goal-col">4</th><th class="goal-col">OT</th>
+                                        <th class="foul-col">1</th><th class="foul-col">2</th><th class="foul-col">3</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="dark-roster-body"></tbody>
                             </table>
@@ -192,7 +327,7 @@
                     </tr>
                 </table>
             </div>
-            <p style="font-size: 0.8em; color: #7f8c8d; margin-top: 10px;">*Tip: Tap on any player name to edit it manually.</p>
+            <p style="font-size: 0.8em; color: #7f8c8d; margin-top: 10px;">*Tap any Name or Cap # to manually edit. The AI pre-processes images, but human verification is always best!</p>
         </div>
     </div>
 
@@ -228,23 +363,50 @@
         </div>
     </div>
 
-    <script>
+    <script type="text/javascript">
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error("Script error:", msg);
+            return false;
+        };
+
         var gameTime = 360; 
         var shotTime = 30;
         var timerInterval = null;
         var isRunning = false;
         var gameLog = [];
         var currentQuarter = 1;
+        var currentRosterView = 'goals';
+        var trackAssists = false;
+        
+        var isAssistMode = false;
+        var pendingGoalCap = '';
+        
         var foulTracker = { 'White': {}, 'Dark': {} };
+        var goalTracker = { 'White': {}, 'Dark': {} };
+        var teamScore = { 'White': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, 'Dark': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+        
         var pendingTeam = '';
         var pendingEvent = '';
         var currentCapInput = '';
 
-        var whiteRosterNames = ["Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player"];
-        var darkRosterNames = ["Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player", "Player"];
+        var whiteTeamName = "White Team";
+        var darkTeamName = "Dark Team";
+
+        var whiteRosterData = [];
+        var darkRosterData = [];
+        
+        for(var i=1; i<=15; i++) {
+            whiteRosterData.push({ cap: i.toString(), name: "" });
+            darkRosterData.push({ cap: i.toString(), name: "" });
+        }
         
         var currentScanTeam = '';
         var cameraStream = null;
+
+        window.addEventListener('beforeprint', function() {
+            setScorecardView('all');
+            setRosterView('both');
+        });
 
         function updateDefaultTime() {
             try {
@@ -253,10 +415,12 @@
             } catch(e) { console.error(e); }
         }
 
+        // --- SMARTER OCR & CAMERA LOGIC ---
         function openCamera(team) {
             try {
                 currentScanTeam = team;
-                document.getElementById('camera-title').innerText = "Take Photo of " + team + " Roster";
+                var titleText = team === 'Combo' ? "Take Photo of BOTH Teams" : "Take Photo of " + team + " Roster";
+                document.getElementById('camera-title').innerText = titleText;
                 document.getElementById('camera-modal').classList.remove('hidden');
                 
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -267,37 +431,108 @@
                     })
                     .catch(function(err) {
                         closeCamera();
-                        simulateScan(team);
+                        alert("Camera blocked. You can manually type names once the game starts.");
                     });
                 } else {
                     closeCamera();
-                    simulateScan(team);
+                    alert("Camera not supported on this device.");
                 }
             } catch (e) {
                 closeCamera();
-                simulateScan(team);
             }
         }
 
         function takePhoto() {
-            closeCamera();
-            simulateScan(currentScanTeam);
+            try {
+                var video = document.getElementById('camera-feed');
+                var canvas = document.getElementById('snapshot-canvas');
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // IMAGE PRE-PROCESSING FOR BETTER OCR
+                // This washes out grid lines and boosts handwritten ink
+                var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imgData.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    var avg = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114); // Grayscale
+                    var val = avg < 130 ? 0 : 255; // Threshold High Contrast
+                    data[i] = val;     // red
+                    data[i + 1] = val; // green
+                    data[i + 2] = val; // blue
+                }
+                ctx.putImageData(imgData, 0, 0);
+
+                var imageSrc = canvas.toDataURL('image/jpeg');
+                
+                closeCamera();
+                processOCR(currentScanTeam, imageSrc);
+            } catch(e) {
+                console.error(e);
+                closeCamera();
+            }
         }
 
-        function simulateScan(team) {
-            try {
-                var statusEl = document.getElementById(team.toLowerCase() + "-status");
-                if(statusEl) statusEl.innerText = "Scanning photo... extracting names...";
+        function processOCR(team, imageSrc) {
+            var statusEl = document.getElementById(team.toLowerCase() + "-status");
+            if(statusEl) statusEl.innerText = "🤖 AI is extracting names... (Takes ~5 seconds)";
+            
+            Tesseract.recognize(imageSrc, 'eng')
+            .then(function(result) {
+                var text = result.data.text;
+                var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
                 
-                setTimeout(function() {
-                    if(statusEl) statusEl.innerText = "✅ " + team + " Roster Uploaded!";
-                    if(team === 'White') {
-                        whiteRosterNames = ["Smith, J.", "Doe, A.", "Johnson, B.", "Williams, C.", "Brown, D.", "Jones, E.", "Garcia, F.", "Miller, G.", "Davis, H.", "Rodriguez, I.", "Martinez, J.", "Hernandez, K.", "Lopez, L.", "Gonzalez, M.", "Wilson, N."];
-                    } else {
-                        darkRosterNames = ["Anderson, T.", "Thomas, S.", "Taylor, R.", "Moore, Q.", "Jackson, P.", "Martin, O.", "Lee, N.", "Perez, M.", "Thompson, L.", "White, K.", "Harris, J.", "Sanchez, I.", "Clark, H.", "Ramirez, G.", "Lewis, F."];
+                // TEXT CLEANER: Removes weird symbols and empty grid reads
+                var cleanLines = [];
+                for(var i=0; i<lines.length; i++) {
+                    var upper = lines[i].toUpperCase();
+                    // Ignore common headers
+                    if(upper.includes("WATER") || upper.includes("POLO") || upper.includes("SCORE") || upper.includes("CAP") || upper.includes("FOUL") || upper.includes("GOAL") || upper.includes("TIME")) continue;
+                    
+                    // Strip weird punctuation entirely, keep only words and numbers
+                    var cleanStr = lines[i].replace(/[^\w\s]/g, '').trim();
+                    if (cleanStr.length === 0) continue;
+
+                    // Look for numbers followed by text
+                    var rosterMatch = cleanStr.match(/^(\d{1,2})\s+(.*)/);
+                    if (rosterMatch) {
+                        cleanLines.push({ cap: rosterMatch[1], name: rosterMatch[2].substring(0,20) });
+                    } else if (cleanStr.length > 3 && !cleanStr.match(/^[\d\W]+$/)) {
+                        // If it's a word but no number, log it anyway
+                        cleanLines.push({ cap: "", name: cleanStr.substring(0,20) });
                     }
-                }, 1000);
-            } catch(e) { console.error(e); }
+                }
+
+                if (team === 'Combo') {
+                    var half = Math.ceil(cleanLines.length / 2);
+                    for (var w = 0; w < half && w < 15; w++) {
+                        whiteRosterData[w].cap = cleanLines[w].cap || (w+1).toString();
+                        whiteRosterData[w].name = cleanLines[w].name;
+                    }
+                    for (var d = half; d < cleanLines.length && (d-half) < 15; d++) {
+                        darkRosterData[d-half].cap = cleanLines[d].cap || ((d-half)+1).toString();
+                        darkRosterData[d-half].name = cleanLines[d].name;
+                    }
+                } else {
+                    var targetData = (team === 'White') ? whiteRosterData : darkRosterData;
+                    for (var j = 0; j < cleanLines.length && j < 15; j++) {
+                        targetData[j].cap = cleanLines[j].cap || (j+1).toString();
+                        targetData[j].name = cleanLines[j].name;
+                    }
+                }
+                
+                if(statusEl) statusEl.innerText = "✅ " + team + " Roster Processed!";
+                
+                if (!document.getElementById('dashboard-screen').classList.contains('hidden')) {
+                    updateRealTimeScorecard();
+                }
+            })
+            .catch(function(err) {
+                console.error("OCR Error: ", err);
+                if(statusEl) statusEl.innerText = "⚠️ AI extraction failed. Manual entry required.";
+            });
         }
 
         function closeCamera() {
@@ -310,8 +545,101 @@
             } catch(e) { console.error(e); }
         }
 
+        // --- CLOCK MANAGEMENT CONTROLS ---
+        function editGameClock() {
+            try {
+                if (isRunning) toggleClock();
+                var currentText = document.getElementById("game-clock").innerText;
+                var newTime = prompt("Enter new game time (MM:SS):", currentText);
+                if (newTime) {
+                    var parts = newTime.split(":");
+                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        gameTime = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                        updateDisplay();
+                    } else {
+                        alert("Invalid format. Please use MM:SS (e.g. 5:30)");
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function setShotClock(val) {
+            try {
+                if (val === 'OFF') {
+                    shotTime = 'OFF';
+                } else {
+                    shotTime = parseInt(val);
+                }
+                updateDisplay();
+            } catch(e) { console.error(e); }
+        }
+
+        function updateDisplay() {
+            try {
+                var m = Math.floor(gameTime / 60);
+                var s = gameTime % 60;
+                var secString = s < 10 ? "0" + s : s;
+                document.getElementById("game-clock").innerText = m + ":" + secString;
+                
+                if (shotTime === 'OFF') {
+                    document.getElementById("shot-clock").innerText = "--";
+                } else {
+                    document.getElementById("shot-clock").innerText = shotTime;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function toggleClock() {
+            try {
+                if (isRunning) {
+                    isRunning = false;
+                    clearInterval(timerInterval);
+                    document.getElementById('clock-btn').innerText = "START CLOCKS";
+                    document.getElementById('clock-btn').style.backgroundColor = "#27ae60";
+                } else {
+                    isRunning = true;
+                    document.getElementById('clock-btn').innerText = "STOP (WHISTLE)";
+                    document.getElementById('clock-btn').style.backgroundColor = "#c0392b";
+                    timerInterval = setInterval(function() {
+                        if (gameTime > 0) gameTime--;
+                        
+                        if (shotTime !== 'OFF' && shotTime > 0) {
+                            shotTime--;
+                        }
+                        
+                        updateDisplay();
+                        
+                        if (gameTime === 0) {
+                            toggleClock();
+                            alert("Quarter Over! Click 'End Period' when ready.");
+                        } else if (shotTime === 0) {
+                            toggleClock();
+                        }
+                    }, 1000);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function resetShotClock() {
+            shotTime = 30;
+            updateDisplay();
+        }
+
+        // --- START & RESET GAME LOGIC ---
         function startGame() {
             try {
+                var wInput = document.getElementById('setup-white-name').value.trim();
+                var dInput = document.getElementById('setup-dark-name').value.trim();
+                whiteTeamName = wInput !== "" ? wInput : "White Team";
+                darkTeamName = dInput !== "" ? dInput : "Dark Team";
+
+                document.getElementById('dash-name-white').innerText = whiteTeamName;
+                document.getElementById('dash-name-dark').innerText = darkTeamName;
+                document.getElementById('sum-name-white').innerText = whiteTeamName;
+                document.getElementById('sum-name-dark').innerText = darkTeamName;
+                document.getElementById('table-name-white').innerText = whiteTeamName;
+                document.getElementById('table-name-dark').innerText = darkTeamName;
+
                 currentQuarter = 1;
                 document.getElementById('quarter-display').innerText = "Q" + currentQuarter;
                 
@@ -320,7 +648,10 @@
                 gameTime = selectedMinutes * 60;
                 shotTime = 30;
                 
-                initScorecardRosters(); 
+                trackAssists = (document.getElementById('track-assists').value === 'yes');
+                
+                updateScoreboards();
+                updateRealTimeScorecard(); 
                 
                 document.getElementById('setup-screen').classList.add('hidden');
                 document.getElementById('dashboard-screen').classList.remove('hidden');
@@ -335,17 +666,26 @@
                 if (isRunning) toggleClock();
                 gameLog = [];
                 foulTracker = { 'White': {}, 'Dark': {} };
+                goalTracker = { 'White': {}, 'Dark': {} };
+                teamScore = { 'White': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, 'Dark': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
                 currentQuarter = 1;
+                currentRosterView = 'goals';
+                isAssistMode = false;
+                pendingGoalCap = '';
                 
-                for(var i=0; i<15; i++){
-                    whiteRosterNames[i] = "Player";
-                    darkRosterNames[i] = "Player";
+                whiteRosterData = [];
+                darkRosterData = [];
+                for(var i=1; i<=15; i++) {
+                    whiteRosterData.push({ cap: i.toString(), name: "" });
+                    darkRosterData.push({ cap: i.toString(), name: "" });
                 }
                 
+                document.getElementById('combo-status').innerText = '';
                 document.getElementById('dark-status').innerText = '';
                 document.getElementById('white-status').innerText = '';
                 document.getElementById('age-group').value = "6";
                 document.getElementById('quarter-length').value = "6";
+                document.getElementById('track-assists').value = "no";
                 document.getElementById('rt-progress-body').innerHTML = '';
                 
                 setScorecardView('all'); 
@@ -369,6 +709,77 @@
                 
                 updateDisplay();
                 updateRealTimeScorecard();
+                updateScoreboards();
+            } catch(e) { console.error(e); }
+        }
+
+        function undoLastEntry() {
+            try {
+                if (gameLog.length === 0) return;
+                
+                var popped = gameLog.pop();
+                
+                if (popped.isDivider) {
+                    currentQuarter--;
+                    var quarterText = currentQuarter > 4 ? "OT" : "Q" + currentQuarter;
+                    document.getElementById('quarter-display').innerText = quarterText;
+                }
+                
+                rebuildTrackersFromLog();
+                updateRealTimeScorecard();
+                updateScoreboards();
+            } catch(e) { console.error(e); }
+        }
+
+        function rebuildTrackersFromLog() {
+            foulTracker = { 'White': {}, 'Dark': {} };
+            goalTracker = { 'White': {}, 'Dark': {} };
+            teamScore = { 'White': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, 'Dark': { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+            
+            for (var i = 0; i < gameLog.length; i++) {
+                var entry = gameLog[i];
+                if (entry.isDivider) continue;
+                if (entry.remark === 'TO') continue;
+                
+                var team = entry.fullTeam;
+                var cap = entry.cap;
+                var remark = entry.remark;
+                
+                var baseRemark = remark.charAt(0);
+                
+                if (baseRemark === 'E' || baseRemark === 'P') {
+                    if (!foulTracker[team][cap]) foulTracker[team][cap] = [];
+                    foulTracker[team][cap].push(baseRemark);
+                } else if (baseRemark === 'G') {
+                    if (!goalTracker[team][cap]) goalTracker[team][cap] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                    var q = entry.quarterIndex;
+                    goalTracker[team][cap][q]++;
+                    teamScore[team][q]++;
+                }
+            }
+        }
+
+        // --- TAB & UI CONTROL LOGIC ---
+        function updateScoreboards() {
+            try {
+                var wTotal = 0;
+                var dTotal = 0;
+                
+                for(var i=1; i<=5; i++) {
+                    var wQ = teamScore['White'][i];
+                    var dQ = teamScore['Dark'][i];
+                    wTotal += wQ;
+                    dTotal += dQ;
+                    
+                    document.getElementById('sum-W-' + i).innerText = wQ > 0 ? wQ : (currentQuarter >= i ? '0' : '');
+                    document.getElementById('sum-D-' + i).innerText = dQ > 0 ? dQ : (currentQuarter >= i ? '0' : '');
+                }
+                
+                document.getElementById('sum-W-final').innerText = wTotal;
+                document.getElementById('sum-D-final').innerText = dTotal;
+                
+                document.getElementById('top-score-white').innerText = wTotal;
+                document.getElementById('top-score-dark').innerText = dTotal;
             } catch(e) { console.error(e); }
         }
 
@@ -395,27 +806,79 @@
             } catch(e) { console.error(e); }
         }
 
+        function setRosterView(view) {
+            try {
+                currentRosterView = view;
+                
+                document.getElementById('tab-goals').classList.remove('active-view');
+                document.getElementById('tab-fouls').classList.remove('active-view');
+                document.getElementById('tab-both').classList.remove('active-view');
+                document.getElementById('tab-' + view).classList.add('active-view');
+
+                var goalCols = document.querySelectorAll('.goal-col');
+                var foulCols = document.querySelectorAll('.foul-col');
+                var teamThs = document.querySelectorAll('.team-header-th');
+
+                if (view === 'goals') {
+                    goalCols.forEach(function(el) { el.style.display = 'table-cell'; });
+                    foulCols.forEach(function(el) { el.style.display = 'none'; });
+                    teamThs.forEach(function(el) { el.colSpan = 7; });
+                } else if (view === 'fouls') {
+                    goalCols.forEach(function(el) { el.style.display = 'none'; });
+                    foulCols.forEach(function(el) { el.style.display = 'table-cell'; });
+                    teamThs.forEach(function(el) { el.colSpan = 5; });
+                } else {
+                    goalCols.forEach(function(el) { el.style.display = 'table-cell'; });
+                    foulCols.forEach(function(el) { el.style.display = 'table-cell'; });
+                    teamThs.forEach(function(el) { el.colSpan = 10; });
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function updateRosterData(team, index, field, value) {
+            if (team === 'White') {
+                whiteRosterData[index][field] = value.trim();
+            } else {
+                darkRosterData[index][field] = value.trim();
+            }
+        }
+
         function initScorecardRosters() {
             try {
                 var whiteRows = '';
-                var darkRows = '';
-                for(var i = 1; i <= 15; i++) {
+                for(var i = 0; i < whiteRosterData.length; i++) {
+                    var wCap = whiteRosterData[i].cap;
                     whiteRows += "<tr>" +
-                        "<td style='font-weight:bold;'>" + i + "</td>" +
-                        "<td class='name-cell' contenteditable='true' spellcheck='false'>" + whiteRosterNames[i-1] + "</td>" +
-                        "<td class='foul-box' id='W-foul-" + i + "-1'></td>" +
-                        "<td class='foul-box' id='W-foul-" + i + "-2'></td>" +
-                        "<td class='foul-box' id='W-foul-" + i + "-3'></td>" +
-                    "</tr>";
-                    
-                    darkRows += "<tr>" +
-                        "<td style='font-weight:bold;'>" + i + "</td>" +
-                        "<td class='name-cell' contenteditable='true' spellcheck='false'>" + darkRosterNames[i-1] + "</td>" +
-                        "<td class='foul-box' id='D-foul-" + i + "-1'></td>" +
-                        "<td class='foul-box' id='D-foul-" + i + "-2'></td>" +
-                        "<td class='foul-box' id='D-foul-" + i + "-3'></td>" +
+                        "<td class='editable-cell cap-cell' contenteditable='true' spellcheck='false' onblur='updateRosterData(\"White\", " + i + ", \"cap\", this.innerText)'>" + wCap + "</td>" +
+                        "<td class='editable-cell name-cell' contenteditable='true' spellcheck='false' onblur='updateRosterData(\"White\", " + i + ", \"name\", this.innerText)'>" + whiteRosterData[i].name + "</td>" +
+                        "<td class='goal-box goal-col' id='W-goal-" + wCap + "-1'></td>" +
+                        "<td class='goal-box goal-col' id='W-goal-" + wCap + "-2'></td>" +
+                        "<td class='goal-box goal-col' id='W-goal-" + wCap + "-3'></td>" +
+                        "<td class='goal-box goal-col' id='W-goal-" + wCap + "-4'></td>" +
+                        "<td class='goal-box goal-col' id='W-goal-" + wCap + "-5'></td>" +
+                        "<td class='foul-box foul-col' id='W-foul-" + wCap + "-1'></td>" +
+                        "<td class='foul-box foul-col' id='W-foul-" + wCap + "-2'></td>" +
+                        "<td class='foul-box foul-col' id='W-foul-" + wCap + "-3'></td>" +
                     "</tr>";
                 }
+                
+                var darkRows = '';
+                for(var j = 0; j < darkRosterData.length; j++) {
+                    var dCap = darkRosterData[j].cap;
+                    darkRows += "<tr>" +
+                        "<td class='editable-cell cap-cell' contenteditable='true' spellcheck='false' onblur='updateRosterData(\"Dark\", " + j + ", \"cap\", this.innerText)'>" + dCap + "</td>" +
+                        "<td class='editable-cell name-cell' contenteditable='true' spellcheck='false' onblur='updateRosterData(\"Dark\", " + j + ", \"name\", this.innerText)'>" + darkRosterData[j].name + "</td>" +
+                        "<td class='goal-box goal-col' id='D-goal-" + dCap + "-1'></td>" +
+                        "<td class='goal-box goal-col' id='D-goal-" + dCap + "-2'></td>" +
+                        "<td class='goal-box goal-col' id='D-goal-" + dCap + "-3'></td>" +
+                        "<td class='goal-box goal-col' id='D-goal-" + dCap + "-4'></td>" +
+                        "<td class='goal-box goal-col' id='D-goal-" + dCap + "-5'></td>" +
+                        "<td class='foul-box foul-col' id='D-foul-" + dCap + "-1'></td>" +
+                        "<td class='foul-box foul-col' id='D-foul-" + dCap + "-2'></td>" +
+                        "<td class='foul-box foul-col' id='D-foul-" + dCap + "-3'></td>" +
+                    "</tr>";
+                }
+
                 document.getElementById('white-roster-body').innerHTML = whiteRows;
                 document.getElementById('dark-roster-body').innerHTML = darkRows;
             } catch(e) { console.error(e); }
@@ -423,6 +886,8 @@
 
         function updateRealTimeScorecard() {
             try {
+                initScorecardRosters(); 
+                
                 var tbody = document.getElementById('rt-progress-body');
                 var content = ''; 
                 
@@ -442,70 +907,46 @@
                 }
                 tbody.innerHTML = content;
 
-                for (var team in foulTracker) {
-                    var tPrefix = team.charAt(0);
-                    for (var cap in foulTracker[team]) {
-                        var fouls = foulTracker[team][cap];
+                for (var teamF in foulTracker) {
+                    var tFPrefix = teamF.charAt(0);
+                    for (var capF in foulTracker[teamF]) {
+                        var fouls = foulTracker[teamF][capF];
                         for(var f=0; f<fouls.length; f++) {
-                            var boxElement = document.getElementById(tPrefix + "-foul-" + cap + "-" + (f + 1));
-                            if(boxElement) boxElement.innerText = fouls[f];
+                            var boxFElement = document.getElementById(tFPrefix + "-foul-" + capF + "-" + (f + 1));
+                            if(boxFElement) boxFElement.innerText = fouls[f];
                         }
                     }
                 }
+                
+                for (var teamG in goalTracker) {
+                    var tGPrefix = teamG.charAt(0);
+                    for (var capG in goalTracker[teamG]) {
+                        var qGoals = goalTracker[teamG][capG];
+                        for(var q=1; q<=5; q++) {
+                            var boxGElement = document.getElementById(tGPrefix + "-goal-" + capG + "-" + q);
+                            if(boxGElement) {
+                                boxGElement.innerText = qGoals[q] > 0 ? qGoals[q] : "";
+                            }
+                        }
+                    }
+                }
+                
+                setRosterView(currentRosterView);
                 
                 var scrollContainer = document.getElementById('scroll-container');
                 if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
             } catch(e) { console.error(e); }
         }
 
-        function updateDisplay() {
-            try {
-                var m = Math.floor(gameTime / 60);
-                var s = gameTime % 60;
-                var secString = s < 10 ? "0" + s : s;
-                document.getElementById("game-clock").innerText = m + ":" + secString;
-                document.getElementById("shot-clock").innerText = shotTime;
-            } catch(e) { console.error(e); }
-        }
-
-        function toggleClock() {
-            try {
-                if (isRunning) {
-                    isRunning = false;
-                    clearInterval(timerInterval);
-                    document.getElementById('clock-btn').innerText = "START CLOCKS";
-                    document.getElementById('clock-btn').style.backgroundColor = "#27ae60";
-                } else {
-                    isRunning = true;
-                    document.getElementById('clock-btn').innerText = "STOP (WHISTLE)";
-                    document.getElementById('clock-btn').style.backgroundColor = "#c0392b";
-                    timerInterval = setInterval(function() {
-                        if (gameTime > 0) gameTime--;
-                        if (shotTime > 0) shotTime--;
-                        updateDisplay();
-                        
-                        if (gameTime === 0) {
-                            toggleClock();
-                            alert("Quarter Over! Click 'End Period' when ready.");
-                        } else if (shotTime === 0) {
-                            toggleClock();
-                        }
-                    }, 1000);
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        function resetShotClock() {
-            shotTime = 30;
-            updateDisplay();
-        }
-
+        // --- KEYPAD & EVENT LOGIC ---
         function openKeypad(team, event) {
             try {
                 if (isRunning) toggleClock(); 
                 pendingTeam = team;
                 pendingEvent = event;
                 currentCapInput = '';
+                isAssistMode = false;
+                pendingGoalCap = '';
                 document.getElementById('keypad-title').innerText = team + " " + event + " - Cap #";
                 document.getElementById('keypad-display').innerText = '';
                 document.getElementById('keypad-modal').classList.remove('hidden');
@@ -528,6 +969,8 @@
 
         function closeKeypad() {
             document.getElementById('keypad-modal').classList.add('hidden');
+            isAssistMode = false;
+            pendingGoalCap = '';
         }
 
         function recordTimeout(team) {
@@ -538,7 +981,7 @@
                 var secString = s < 10 ? "0" + s : s;
                 var timeString = m + ":" + secString;
                 
-                gameLog.push({ time: timeString, team: team.charAt(0), cap: '-', remark: 'TO' });
+                gameLog.push({ time: timeString, team: team.charAt(0), fullTeam: team, cap: '-', remark: 'TO', quarterIndex: 0 });
                 updateRealTimeScorecard();
             } catch(e) { console.error(e); }
         }
@@ -547,6 +990,50 @@
             try {
                 if (currentCapInput === '') return;
                 
+                var targetRoster = (pendingTeam === 'White') ? whiteRosterData : darkRosterData;
+                var qIndex = currentQuarter > 4 ? 5 : currentQuarter; 
+                
+                if (pendingEvent === 'Goal' && trackAssists && !isAssistMode) {
+                    var hasAssist = confirm("Was there an assist to note for this goal?\n\nClick OK for Yes, or Cancel to skip.");
+                    if (hasAssist) {
+                        pendingGoalCap = currentCapInput; 
+                        isAssistMode = true;              
+                        currentCapInput = '';             
+                        document.getElementById('keypad-title').innerText = pendingTeam + " Assist - Cap #";
+                        document.getElementById('keypad-display').innerText = '';
+                        return; 
+                    }
+                }
+
+                var primaryCap = isAssistMode ? pendingGoalCap : currentCapInput;
+                var assistCap = isAssistMode ? currentCapInput : null;
+
+                function ensureCap(c) {
+                    if (!c) return true;
+                    var capExists = false;
+                    for(var i=0; i<targetRoster.length; i++) {
+                        if(targetRoster[i].cap === c.toString()) {
+                            capExists = true;
+                            break;
+                        }
+                    }
+                    if (!capExists) {
+                        var proceed = confirm("Cap #" + c + " is not on the roster.\n\nYou are adding a new player, do you wish to proceed?");
+                        if (!proceed) return false; 
+                        
+                        var newName = prompt("Enter the player's name for Cap #" + c + ":");
+                        if (newName === null) newName = "Player"; 
+                        targetRoster.push({ cap: c.toString(), name: newName });
+                    }
+                    return true;
+                }
+
+                if (!ensureCap(primaryCap)) return;
+                if (assistCap && !ensureCap(assistCap)) return;
+                
+                initScorecardRosters(); 
+                setRosterView(currentRosterView);
+
                 var m = Math.floor(gameTime / 60);
                 var s = gameTime % 60;
                 var secString = s < 10 ? "0" + s : s;
@@ -556,23 +1043,39 @@
                 if (pendingEvent === 'Exclusion' || pendingEvent === 'Penalty') {
                     remark = (pendingEvent === 'Exclusion') ? 'E' : 'P';
                     
-                    if (!foulTracker[pendingTeam][currentCapInput]) {
-                        foulTracker[pendingTeam][currentCapInput] = [];
+                    if (!foulTracker[pendingTeam][primaryCap]) {
+                        foulTracker[pendingTeam][primaryCap] = [];
                     }
-                    
-                    foulTracker[pendingTeam][currentCapInput].push(remark);
+                    foulTracker[pendingTeam][primaryCap].push(remark);
 
-                    if (foulTracker[pendingTeam][currentCapInput].length >= 3) {
-                        document.getElementById('foul-warning-text').innerText = pendingTeam.toUpperCase() + " TEAM - CAP #" + currentCapInput;
+                    if (foulTracker[pendingTeam][primaryCap].length >= 3) {
+                        document.getElementById('foul-warning-text').innerText = pendingTeam.toUpperCase() + " TEAM - CAP #" + primaryCap;
                         document.getElementById('foul-warning-modal').classList.remove('hidden');
                     }
+                } else if (pendingEvent === 'Goal') {
+                    if (assistCap) {
+                        remark = 'G (Ast: ' + assistCap + ')';
+                    }
+                    if (!goalTracker[pendingTeam][primaryCap]) {
+                        goalTracker[pendingTeam][primaryCap] = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                    }
+                    goalTracker[pendingTeam][primaryCap][qIndex]++;
+                    teamScore[pendingTeam][qIndex]++;
                 }
 
-                gameLog.push({ time: timeString, team: pendingTeam.charAt(0), cap: currentCapInput, remark: remark });
+                gameLog.push({ 
+                    time: timeString, 
+                    team: pendingTeam.charAt(0), 
+                    fullTeam: pendingTeam, 
+                    cap: primaryCap, 
+                    remark: remark, 
+                    quarterIndex: qIndex 
+                });
                 
                 resetShotClock();
                 closeKeypad();
                 updateRealTimeScorecard();
+                updateScoreboards();
             } catch(e) { console.error(e); }
         }
 
@@ -583,7 +1086,7 @@
         document.addEventListener('keydown', function(event) {
             try {
                 if (!document.getElementById('keypad-modal').classList.contains('hidden')) {
-                    if (document.activeElement && document.activeElement.classList.contains('name-cell')) return;
+                    if (document.activeElement && (document.activeElement.classList.contains('name-cell') || document.activeElement.classList.contains('cap-cell'))) return;
 
                     if (event.key === 'Enter') {
                         event.preventDefault(); 
