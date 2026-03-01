@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desk Duty: Pro Simulator</title>
+    <style>
+        /* Core Styles */
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; text-align: center; }
+        .hidden { display: none !important; }
+        button { padding: 15px; font-size: 1.1em; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white; margin: 5px; }
+        button:hover { opacity: 0.8; }
+        
+        /* Setup Screen */
+        #setup-screen { background: white; padding: 40px; border-radius: 10px; max-width: 500px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .camera-btn { background-color: #34495e; width: 100%; margin-top: 15px; display: block; }
+        .settings-group { margin: 25px 0; background: #ecf0f1; padding: 20px; border-radius: 5px; text-align: left; border: 1px solid #bdc3c7; }
+        select { padding: 10px; font-size: 1.1em; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; }
+        
+        /* Dashboard */
+        .dashboard { display: flex; justify-content: space-around; background: #2c3e50; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 10px 20px; border-radius: 5px; }
+        .shot-clock { color: #f1c40f; }
+        
+        /* Game Controls */
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 800px; margin: 0 auto; }
+        .btn-white { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; }
+        .btn-dark { background-color: #2c3e50; color: white; }
+        .btn-clock { background-color: #e67e22; grid-column: span 2; }
+        .btn-timeout { background-color: #f39c12; }
+        
+        /* Modals & Keypad */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .keypad { background: white; padding: 20px; border-radius: 10px; width: 300px; }
+        .keypad-display { background: #ecf0f1; padding: 15px; font-size: 2em; margin-bottom: 15px; border-radius: 5px; min-height: 40px; color: #333; }
+        .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .keys button { background: #3498db; font-size: 1.5em; padding: 20px 0; }
+        .keys .btn-clear { background: #e74c3c; }
+        .keys .btn-enter { background: #2ecc71; grid-column: span 2; }
+
+        /* Camera Modal & Warning Modal */
+        .camera-box { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; }
+        video { width: 100%; border-radius: 5px; background: black; margin-bottom: 15px; }
+        .warning-box { background: #c0392b; color: white; padding: 30px; border-radius: 10px; width: 80%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .warning-box h1 { font-size: 4em; margin: 0; }
+        .warning-box button { background: white; color: #c0392b; width: 100%; margin-top: 20px; font-size: 1.2em; }
+
+        /* Real-Time Scorecard Container */
+        .scorecard-wrapper {
+            margin-top: 30px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #bdc3c7;
+            overflow-x: auto;
+            touch-action: pan-x pan-y pinch-zoom; /* Specifically enables smooth zooming on touchscreens */
+        }
+        
+        .paper-scorecard { width: 100%; min-width: 700px; border-collapse: collapse; text-align: center; font-size: 0.9em; }
+        .paper-scorecard th { background-color: #ecf0f1; border: 1px solid #7f8c8d; padding: 5px; }
+        .paper-scorecard td { border: 1px solid #7f8c8d; padding: 3px; vertical-align: top; }
+        
+        /* Inner tables for Roster Fouls & Game Progress */
+        .roster-table, .progress-table { width: 100%; border-collapse: collapse; }
+        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 4px; height: 20px; }
+        .roster-table th, .progress-table th { background-color: #f9f9f9; border: 1px solid #ccc; font-size: 0.8em; }
+        .foul-box { width: 20px; font-weight: bold; color: #c0392b; }
+
+        /* Print Styles */
+        @media print {
+            body { background: white; padding: 0; }
+            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .no-print { display: none !important; }
+            .scorecard-wrapper { border: none; margin-top: 0; padding: 0; }
+            @page { margin: 0.5cm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h2>Pre-Game Setup</h2>
+        
+        <div class="settings-group">
+            <label for="age-group" style="font-weight: bold;">Age Group:</label>
+            <select id="age-group" onchange="updateDefaultTime()">
+                <option value="5">10U / 12U</option>
+                <option value="6" selected>14U</option>
+                <option value="7">16U / 18U / High School</option>
+            </select>
+
+            <label for="quarter-length" style="font-weight: bold;">Quarter Length (Override):</label>
+            <select id="quarter-length">
+                <option value="5">5 Minutes</option>
+                <option value="6" selected>6 Minutes</option>
+                <option value="7">7 Minutes</option>
+                <option value="8">8 Minutes</option>
+            </select>
+        </div>
+
+        <p>Scan the paper scorecards to upload rosters.</p>
+        
+        <button class="camera-btn" onclick="openCamera('Dark')">📷 Scan DARK Team Roster</button>
+        <p id="dark-status" style="color: green; font-weight: bold; margin: 5px 0 15px 0;"></p>
+
+        <button class="camera-btn" style="background-color:#7f8c8d;" onclick="openCamera('White')">📷 Scan WHITE Team Roster</button>
+        <p id="white-status" style="color: green; font-weight: bold; margin: 5px 0 15px 0;"></p>
+
+        <br>
+        <button style="background-color: #27ae60; width: 100%; font-size: 1.3em;" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="camera-modal" class="modal-overlay hidden">
+        <div class="camera-box">
+            <h3 id="camera-title">Take Photo of Roster</h3>
+            <video id="camera-feed" autoplay playsinline></video>
+            <button style="background-color: #27ae60; width: 100%;" onclick="takePhoto()">📸 SNAP PHOTO</button>
+            <button style="background-color: #c0392b; width: 100%;" onclick="closeCamera()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="dashboard-screen" class="hidden">
+        <div class="dashboard">
+            <div>
+                <h3>GAME CLOCK</h3>
+                <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
+            </div>
+            <div>
+                <h3>SHOT CLOCK</h3>
+                <div id="shot-clock" class="clock shot-clock" onclick="resetShotClock()">30</div>
+            </div>
+        </div>
+
+        <button class="btn-clock" onclick="toggleClock()" id="clock-btn">START CLOCKS</button>
+
+        <div class="controls-grid">
+            <button class="btn-white" onclick="openKeypad('White', 'Goal')">White Goal</button>
+            <button class="btn-dark" onclick="openKeypad('Dark', 'Goal')">Dark Goal</button>
+            <button class="btn-white" onclick="openKeypad('White', 'Exclusion')">White Exclusion (E)</button>
+            <button class="btn-dark" onclick="openKeypad('Dark', 'Exclusion')">Dark Exclusion (E)</button>
+            <button class="btn-white" onclick="openKeypad('White', 'Penalty')">White Penalty (P)</button>
+            <button class="btn-dark" onclick="openKeypad('Dark', 'Penalty')">Dark Penalty (P)</button>
+            <button class="btn-timeout" onclick="recordTimeout('White')">White Timeout</button>
+            <button class="btn-timeout" onclick="recordTimeout('Dark')">Dark Timeout</button>
+        </div>
+        
+        <div class="scorecard-wrapper">
+            <h2 style="margin: 0 0 10px 0;">Official Progress of Game</h2>
+            <button class="no-print" onclick="window.print()" style="background-color: #2980b9; padding: 10px; margin-bottom: 10px;">🖨️ Print Final Scorecard</button>
+            <button class="no-print" onclick="resetGame()" style="background-color: #c0392b; padding: 10px; margin-bottom: 10px;">🔄 New Game</button>
+            
+            <table class="paper-scorecard">
+                <tr>
+                    <th width="30%">WHITE TEAM</th>
+                    <th width="40%">PROGRESS OF GAME</th>
+                    <th width="30%">DARK TEAM</th>
+                </tr>
+                <tr>
+                    <td>
+                        <table class="roster-table">
+                            <thead><tr><th>Cap</th><th>1</th><th>2</th><th>3</th></tr></thead>
+                            <tbody id="white-roster-body"></tbody>
+                        </table>
+                    </td>
+                    
+                    <td>
+                        <table class="progress-table">
+                            <thead><tr><th>Time</th><th>W/D</th><th>Cap</th><th>Remarks</th></tr></thead>
+                            <tbody id="rt-progress-body"></tbody>
+                        </table>
+                    </td>
+                    
+                    <td>
+                        <table class="roster-table">
+                            <thead><tr><th>Cap</th><th>1</th><th>2</th><th>3</th></tr></thead>
+                            <tbody id="dark-roster-body"></tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div id="keypad-modal" class="modal-overlay hidden">
+        <div class="keypad">
+            <h3 id="keypad-title" style="color: #333;">Enter Cap #</h3>
+            <div id="keypad-display" class="keypad-display"></div>
+            <div class="keys">
+                <button onclick="pressKey(1)">1</button>
+                <button onclick="pressKey(2)">2</button>
