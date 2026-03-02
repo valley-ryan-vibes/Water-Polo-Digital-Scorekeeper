@@ -2,79 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Desk Duty: Pro Simulator</title>
     
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
         /* Core Styles */
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 15px; text-align: center; }
         .hidden { display: none !important; }
-        button { padding: 15px; font-size: 1.1em; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white; margin: 5px; transition: 0.2s; }
+        
+        /* Interactive Elements */
+        button { padding: 15px; font-size: 1.1em; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white; margin: 5px; transition: 0.2s; touch-action: manipulation; }
         button:hover { opacity: 0.8; }
+        button:active { transform: scale(0.98); } 
+        
+        select, input[type="text"] { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
         
         /* Setup Screen */
-        #setup-screen { background: white; padding: 40px; border-radius: 10px; max-width: 600px; margin: 50px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .camera-btn { background-color: #34495e; width: 100%; margin-top: 10px; display: block; }
+        #setup-screen { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 30px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; }
+        .camera-btn { background-color: #34495e; width: 100%; margin-top: 10px; display: block; margin-left: 0; margin-right: 0; }
         .combo-btn { background-color: #2980b9; }
         .white-btn { background-color: #7f8c8d; }
-        
-        .settings-group { margin: 20px 0; background: #ecf0f1; padding: 20px; border-radius: 5px; text-align: left; border: 1px solid #bdc3c7; }
-        select, input[type="text"] { padding: 10px; font-size: 1.1em; border-radius: 5px; border: 1px solid #bdc3c7; width: 100%; margin-top: 5px; margin-bottom: 15px; box-sizing: border-box; }
+        .settings-group { margin: 20px 0; background: #ecf0f1; padding: 15px; border-radius: 5px; text-align: left; border: 1px solid #bdc3c7; }
         
         /* Dashboard & Top Scoreboard */
-        .dashboard { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 10px; max-width: 950px; margin-left: auto; margin-right: auto; }
+        .dashboard { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; max-width: 950px; margin-left: auto; margin-right: auto; flex-wrap: wrap; gap: 10px; }
+        
+        .clocks-container { display: flex; gap: 20px; align-items: center; justify-content: center; order: 2; flex: 1 1 auto; }
         .clock-section { display: flex; flex-direction: column; align-items: center; }
-        .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 10px 20px; border-radius: 5px; min-width: 140px; }
+        .clock { font-size: 4em; font-family: monospace; font-weight: bold; background: black; color: #e74c3c; padding: 5px 15px; border-radius: 5px; min-width: 140px; text-align: center; }
         .shot-clock { color: #f1c40f; min-width: 80px; }
         .quarter-badge { background: #3498db; padding: 5px 15px; border-radius: 15px; font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
         
-        .team-score-box { padding: 15px; border-radius: 10px; width: 140px; text-align: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-        .white-score-box { background-color: #ecf0f1; color: #2c3e50; }
-        .dark-score-box { background-color: #34495e; color: white; border: 2px solid #ecf0f1; }
+        .team-score-box { padding: 10px; border-radius: 10px; width: 130px; text-align: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); flex: 0 1 auto; }
+        .white-score-box { background-color: #ecf0f1; color: #2c3e50; order: 1; }
+        .dark-score-box { background-color: #34495e; color: white; border: 2px solid #ecf0f1; order: 3; }
         .team-color-label { font-weight: bold; font-size: 1em; letter-spacing: 2px; }
-        .team-custom-name { font-weight: bold; font-size: 1.3em; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .team-score-num { font-size: 4.5em; font-weight: bold; font-family: monospace; line-height: 1; }
+        .team-custom-name { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .team-score-num { font-size: 4em; font-weight: bold; font-family: monospace; line-height: 1; }
         
         /* Clock Controls Mini-Menu */
-        .clock-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; max-width: 950px; margin-left: auto; margin-right: auto; background: #ecf0f1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; }
-        .clock-btn-sm { font-size: 1em; padding: 10px 15px; color: #2c3e50; }
+        .clock-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; max-width: 950px; margin-left: auto; margin-right: auto; background: #ecf0f1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; }
+        .clock-btn-sm { font-size: 1em; padding: 10px 15px; color: #2c3e50; margin: 0; flex-grow: 1; }
         .clock-btn-shot { background-color: #f1c40f; }
         .clock-btn-edit { background-color: #bdc3c7; }
 
         /* Game Controls */
-        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 800px; margin: 0 auto; }
-        .btn-white { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; }
-        .btn-dark { background-color: #2c3e50; color: white; }
-        .btn-clock { background-color: #e67e22; grid-column: span 2; font-size: 1.3em; padding: 20px; }
-        .btn-timeout { background-color: #f39c12; }
-        .btn-quarter { background-color: #9b59b6; }
-        .btn-undo { background-color: #e74c3c; }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 800px; margin: 0 auto; }
+        .btn-white { background-color: #ecf0f1; color: #2c3e50; border: 2px solid #bdc3c7; margin: 0; }
+        .btn-dark { background-color: #2c3e50; color: white; margin: 0; }
+        .btn-clock { background-color: #e67e22; grid-column: span 2; font-size: 1.3em; padding: 20px; margin: 0; }
+        .btn-timeout { background-color: #f39c12; margin: 0; }
+        .btn-quarter { background-color: #9b59b6; margin: 0; }
+        .btn-undo { background-color: #e74c3c; margin: 0; }
+        .btn-steals { background-color: #27ae60; margin: 0; }
+        .btn-misses { background-color: #e67e22; margin: 0; }
         
         /* Modals & Keypad */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .keypad { background: white; padding: 20px; border-radius: 10px; width: 300px; }
-        .keypad-display { background: #ecf0f1; padding: 15px; font-size: 2em; margin-bottom: 15px; border-radius: 5px; min-height: 40px; color: #333; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 10px; box-sizing: border-box; }
+        .keypad { background: white; padding: 20px; border-radius: 10px; width: 100%; max-width: 350px; box-sizing: border-box; }
+        .keypad-display { background: #ecf0f1; padding: 15px; font-size: 2.5em; margin-bottom: 15px; border-radius: 5px; min-height: 50px; color: #333; text-align: center; }
         .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .keys button { background: #3498db; font-size: 1.5em; padding: 20px 0; }
+        .keys button { background: #3498db; font-size: 1.8em; padding: 20px 0; margin: 0; }
         .keys .btn-clear { background: #e74c3c; }
         .keys .btn-enter { background: #2ecc71; grid-column: span 3; } 
         
-        .camera-box { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; }
-        video { width: 100%; border-radius: 5px; background: black; margin-bottom: 15px; }
-        .warning-box { background: #c0392b; color: white; padding: 30px; border-radius: 10px; width: 80%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .camera-box { background: white; padding: 20px; border-radius: 10px; width: 100%; max-width: 500px; box-sizing: border-box; }
+        video { width: 100%; border-radius: 5px; background: black; margin-bottom: 15px; max-height: 50vh; object-fit: cover; }
+        .warning-box { background: #c0392b; color: white; padding: 30px; border-radius: 10px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; }
         .warning-box h1 { font-size: 4em; margin: 0; }
-        .warning-box button { background: white; color: #c0392b; width: 100%; margin-top: 20px; font-size: 1.2em; }
+        .warning-box button { background: white; color: #c0392b; width: 100%; margin-top: 20px; font-size: 1.2em; margin-left: 0; margin-right: 0; }
 
         /* Real-Time Scorecard Container */
-        .scorecard-wrapper { margin-top: 30px; background: #fff; padding: 15px; border-radius: 5px; border: 2px solid #bdc3c7; overflow-x: auto; touch-action: pan-x pan-y pinch-zoom; }
+        .scorecard-wrapper { margin-top: 25px; background: #fff; padding: 15px; border-radius: 5px; border: 2px solid #bdc3c7; overflow-x: auto; -webkit-overflow-scrolling: touch; box-sizing: border-box; }
         
         /* View Toggle Tabs */
         .view-controls-container { display: flex; justify-content: space-around; flex-wrap: wrap; margin-bottom: 15px; background: #ecf0f1; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7;}
-        .view-controls { display: flex; align-items: center; gap: 5px; margin: 5px 0; }
+        .view-controls { display: flex; align-items: center; gap: 5px; margin: 5px 0; flex-wrap: wrap; justify-content: center; }
         .view-controls span { font-weight: bold; margin-right: 5px; color: #2c3e50; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
-        .view-btn { background-color: #bdc3c7; color: #2c3e50; padding: 8px 15px; font-size: 0.95em; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; }
+        .view-btn { background-color: #bdc3c7; color: #2c3e50; padding: 8px 12px; font-size: 0.9em; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; margin: 2px; }
         .active-view { background-color: #f1c40f !important; color: #2c3e50 !important; box-shadow: inset 0 3px 5px rgba(0,0,0,0.2); }
         
         /* Summary Score Table */
@@ -83,33 +90,66 @@
         .score-summary-table th { background-color: #ecf0f1; font-size: 0.9em; }
         .score-summary-table .final-col { font-weight: bold; font-size: 1.2em; background-color: #f9f9f9; }
         
+        /* Main Log Table */
+        .scroll-container { max-height: 50vh; overflow-y: auto; border: 1px solid #7f8c8d; -webkit-overflow-scrolling: touch; }
         .paper-scorecard { width: 100%; min-width: 900px; border-collapse: collapse; text-align: center; font-size: 0.9em; border: 2px solid #333; }
         .paper-scorecard > tbody > tr > td { border: 1px solid #7f8c8d; vertical-align: top; padding: 0; }
         
         /* Inner tables */
         .roster-table, .progress-table { width: 100%; border-collapse: collapse; }
-        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 4px; height: 25px; vertical-align: middle; }
+        .roster-table td, .progress-table td { border: 1px solid #ccc; padding: 4px; height: 28px; vertical-align: middle; }
         .roster-table th, .progress-table th { background-color: #ecf0f1; border: 1px solid #ccc; font-size: 0.9em; position: sticky; top: 0; z-index: 10; padding: 6px; }
         
-        /* Dynamic Columns for Tabbed Views */
         .goal-col { background-color: #fdfefe; }
         .foul-col { background-color: #fef9e7; }
         .foul-box { width: 25px; font-weight: bold; color: #c0392b; }
         .goal-box { width: 25px; font-weight: bold; color: #2980b9; }
         .cap-cell { width: 30px; font-weight: bold; text-align: center; }
-        .name-cell { min-width: 120px; text-align: left; }
+        .name-cell { min-width: 110px; text-align: left; }
         
-        .editable-cell { background-color: #fafafa; cursor: text; transition: 0.2s; }
+        .editable-cell { background-color: #fafafa; cursor: text; transition: 0.2s; font-size: 16px; } 
         .editable-cell:hover { background-color: #e8f4f8; }
         .editable-cell:focus { background-color: #fff; outline: 2px solid #3498db; }
         
         .divider-row td { background-color: #34495e; color: white; font-weight: bold; padding: 8px; letter-spacing: 2px; }
 
-        /* Print Styles */
+        /* Action Row Output */
+        .action-row { display: flex; justify-content: space-around; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; max-width: 900px; margin-left: auto; margin-right: auto;}
+        .action-btn { flex: 1 1 30%; padding: 12px; font-size: 1em; margin: 0; }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 850px) {
+            .paper-scorecard { min-width: 750px; }
+            .name-cell { min-width: 80px; }
+            .clock-btn-sm { flex: 1 1 30%; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 5px; }
+            .clocks-container { order: 1; width: 100%; margin-bottom: 10px; }
+            .white-score-box { order: 2; flex: 1; max-width: 48%; }
+            .dark-score-box { order: 3; flex: 1; max-width: 48%; }
+            .clock { font-size: 3.5em; min-width: 100px; padding: 5px; }
+            .team-score-num { font-size: 3em; }
+            button { font-size: 0.95em; padding: 12px 5px; }
+            .btn-clock { font-size: 1.1em; padding: 15px; }
+            .clock-btn-sm { font-size: 0.85em; padding: 10px; flex: 1 1 45%; }
+            .score-summary-table th, .score-summary-table td { padding: 5px; font-size: 0.85em; }
+            .score-summary-table .final-col { font-size: 1em; }
+        }
+
+        @media (max-width: 400px) {
+            .clock { font-size: 3em; min-width: 80px; }
+            .team-score-num { font-size: 2.5em; }
+            button { font-size: 0.85em; }
+            .keys button { font-size: 1.5em; padding: 15px 0; }
+        }
+
         @media print {
             body { background: white; padding: 0; }
-            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .view-controls-container, .clock-controls, .no-print { display: none !important; }
+            #dashboard-screen > *:not(.scorecard-wrapper), #setup-screen, .modal-overlay, .view-controls-container, .clock-controls, .action-row, .no-print { display: none !important; }
             .scorecard-wrapper { border: none; margin-top: 0; padding: 0; overflow: visible; }
+            .scroll-container { max-height: none; overflow: visible; border: none; }
             #col-white, #col-dark { display: table-cell !important; }
             .goal-col, .foul-col { display: table-cell !important; }
             .team-header-th { colspan: 10 !important; }
@@ -120,7 +160,7 @@
 <body>
 
     <div id="setup-screen">
-        <h2>Pre-Game Setup</h2>
+        <h2 style="margin-top:0;">Pre-Game Setup</h2>
         
         <div class="settings-group">
             <label for="setup-white-name" style="font-weight: bold; color: #7f8c8d;">WHITE Team Name:</label>
@@ -145,15 +185,30 @@
                 <option value="7">7 Minutes</option>
                 <option value="8">8 Minutes</option>
             </select>
-            
-            <label for="track-assists" style="font-weight: bold; color: #2980b9;">Track Assists (Optional):</label>
+        </div>
+
+        <div class="settings-group">
+            <h4 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;">Advanced Stat Tracking:</h4>
+            <label for="track-assists" style="font-weight: bold;">Track Assists (Post-Goal Pop-up):</label>
             <select id="track-assists">
                 <option value="no" selected>No (Standard)</option>
-                <option value="yes">Yes (Ask for Assist after Goals)</option>
+                <option value="yes">Yes</option>
+            </select>
+
+            <label for="track-misses" style="font-weight: bold;">Track Missed Shots (Adds Buttons):</label>
+            <select id="track-misses">
+                <option value="no" selected>No</option>
+                <option value="yes">Yes</option>
+            </select>
+
+            <label for="track-steals" style="font-weight: bold;">Track Steals (Adds Buttons):</label>
+            <select id="track-steals">
+                <option value="no" selected>No</option>
+                <option value="yes">Yes</option>
             </select>
         </div>
 
-        <p>Scan paper scorecards to extract rosters. <em>(Hold camera steady and upright)</em></p>
+        <p>Scan paper scorecards to extract rosters. <em>(Hold camera steady)</em></p>
         
         <button class="camera-btn combo-btn" onclick="openCamera('Combo')">📷 Scan COMBO Scoresheet (Both Teams)</button>
         <p id="combo-status" style="color: #2980b9; font-weight: bold; margin: 5px 0 15px 0;"></p>
@@ -172,7 +227,7 @@
 
     <div id="camera-modal" class="modal-overlay hidden">
         <div class="camera-box">
-            <h3 id="camera-title">Take Photo of Roster</h3>
+            <h3 id="camera-title" style="margin-top:0;">Take Photo</h3>
             <video id="camera-feed" autoplay playsinline></video>
             <canvas id="snapshot-canvas" class="hidden"></canvas>
             <button style="background-color: #27ae60; width: 100%;" onclick="takePhoto()">📸 SNAP PHOTO & EXTRACT</button>
@@ -181,6 +236,7 @@
     </div>
 
     <div id="dashboard-screen" class="hidden">
+        
         <div class="dashboard">
             <div class="team-score-box white-score-box">
                 <div class="team-color-label">WHITE</div>
@@ -188,13 +244,15 @@
                 <div id="top-score-white" class="team-score-num">0</div>
             </div>
             
-            <div class="clock-section">
-                <div id="quarter-display" class="quarter-badge">Q1</div>
-                <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
-            </div>
-            <div class="clock-section">
-                <div style="font-weight: bold; margin-bottom: 5px;">SHOT</div>
-                <div id="shot-clock" class="clock shot-clock">30</div>
+            <div class="clocks-container">
+                <div class="clock-section">
+                    <div id="quarter-display" class="quarter-badge">Q1</div>
+                    <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
+                </div>
+                <div class="clock-section">
+                    <div style="font-weight: bold; margin-bottom: 5px; letter-spacing:1px;">SHOT</div>
+                    <div id="shot-clock" class="clock shot-clock" onclick="resetShotClock()">30</div>
+                </div>
             </div>
             
             <div class="team-score-box dark-score-box">
@@ -213,13 +271,20 @@
             <button class="clock-btn-sm clock-btn-edit" style="color:white; background:#e74c3c;" onclick="setShotClock('OFF')">❌ Shot OFF</button>
         </div>
 
-        <div class="controls-grid">
+        <div class="controls-grid" id="main-controls-grid">
             <button class="btn-white" onclick="openKeypad('White', 'Goal')">White Goal</button>
             <button class="btn-dark" onclick="openKeypad('Dark', 'Goal')">Dark Goal</button>
-            <button class="btn-white" onclick="openKeypad('White', 'Exclusion')">White Exclusion (E)</button>
-            <button class="btn-dark" onclick="openKeypad('Dark', 'Exclusion')">Dark Exclusion (E)</button>
+            
+            <button id="btn-w-miss" class="btn-white btn-misses hidden" onclick="openKeypad('White', 'Shot Miss')">White Missed Shot</button>
+            <button id="btn-d-miss" class="btn-dark btn-misses hidden" onclick="openKeypad('Dark', 'Shot Miss')">Dark Missed Shot</button>
+            <button id="btn-w-steal" class="btn-white btn-steals hidden" onclick="openKeypad('White', 'Steal')">White Steal</button>
+            <button id="btn-d-steal" class="btn-dark btn-steals hidden" onclick="openKeypad('Dark', 'Steal')">Dark Steal</button>
+            
+            <button class="btn-white" onclick="openKeypad('White', 'Exclusion')">White Excl. (E)</button>
+            <button class="btn-dark" onclick="openKeypad('Dark', 'Exclusion')">Dark Excl. (E)</button>
             <button class="btn-white" onclick="openKeypad('White', 'Penalty')">White Penalty (P)</button>
             <button class="btn-dark" onclick="openKeypad('Dark', 'Penalty')">Dark Penalty (P)</button>
+            
             <button class="btn-timeout" onclick="recordTimeout('White')">White Timeout</button>
             <button class="btn-timeout" onclick="recordTimeout('Dark')">Dark Timeout</button>
             
@@ -238,8 +303,8 @@
                 </div>
                 <div class="view-controls">
                     <span>Roster Details:</span>
-                    <button class="view-btn active-view" id="tab-goals" onclick="setRosterView('goals')">Scoring View</button>
-                    <button class="view-btn" id="tab-fouls" onclick="setRosterView('fouls')">Penalty View</button>
+                    <button class="view-btn active-view" id="tab-goals" onclick="setRosterView('goals')">Scoring</button>
+                    <button class="view-btn" id="tab-fouls" onclick="setRosterView('fouls')">Penalties</button>
                     <button class="view-btn" id="tab-both" onclick="setRosterView('both')">Show Both</button>
                 </div>
             </div>
@@ -247,16 +312,16 @@
             <table class="score-summary-table">
                 <thead>
                     <tr>
-                        <th rowspan="2" style="vertical-align: middle; font-size: 1.1em;">TEAM</th>
+                        <th rowspan="2" style="vertical-align: middle;">TEAM</th>
                         <th colspan="5">SCORE BY QUARTER</th>
-                        <th rowspan="2" style="vertical-align: middle; font-size: 1.1em;">FINAL</th>
+                        <th rowspan="2" style="vertical-align: middle;">FINAL</th>
                     </tr>
                     <tr><th>1</th><th>2</th><th>3</th><th>4</th><th>OT</th></tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td style="font-weight:bold; background:#ecf0f1; color:#2c3e50;">
-                            <div style="font-size:0.8em; color:#7f8c8d;">WHITE</div>
+                            <div style="font-size:0.75em; color:#7f8c8d;">WHITE</div>
                             <div id="sum-name-white">White Team</div>
                         </td>
                         <td id="sum-W-1">0</td><td id="sum-W-2"></td><td id="sum-W-3"></td><td id="sum-W-4"></td><td id="sum-W-5"></td>
@@ -264,7 +329,7 @@
                     </tr>
                     <tr>
                         <td style="font-weight:bold; background:#2c3e50; color:white;">
-                            <div style="font-size:0.8em; color:#bdc3c7;">DARK</div>
+                            <div style="font-size:0.75em; color:#bdc3c7;">DARK</div>
                             <div id="sum-name-dark">Dark Team</div>
                         </td>
                         <td id="sum-D-1">0</td><td id="sum-D-2"></td><td id="sum-D-3"></td><td id="sum-D-4"></td><td id="sum-D-5"></td>
@@ -273,10 +338,13 @@
                 </tbody>
             </table>
 
-            <button class="no-print" onclick="window.print()" style="background-color: #2980b9; padding: 10px; margin-bottom: 10px;">🖨️ Print Final Scorecard</button>
-            <button class="no-print" onclick="resetGame()" style="background-color: #c0392b; padding: 10px; margin-bottom: 10px;">🔄 New Game</button>
+            <div class="action-row no-print">
+                <button class="action-btn" style="background-color: #27ae60;" onclick="exportToCSV()">💾 Save Game Data (CSV)</button>
+                <button class="action-btn" style="background-color: #2980b9;" onclick="window.print()">🖨️ Print Scorecard</button>
+                <button class="action-btn" style="background-color: #c0392b;" onclick="resetGame()">🔄 New Game</button>
+            </div>
             
-            <div id="scroll-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #7f8c8d;">
+            <div class="scroll-container" id="scroll-container">
                 <table class="paper-scorecard">
                     <tr>
                         <td id="col-white" width="35%">
@@ -285,7 +353,7 @@
                                     <tr><th colspan="7" class="team-header-th">WHITE: <span id="table-name-white">White Team</span></th></tr>
                                     <tr>
                                         <th rowspan="2">Cap</th>
-                                        <th rowspan="2" style="width: 120px;">Name</th>
+                                        <th rowspan="2" class="name-cell">Name</th>
                                         <th colspan="5" class="goal-col">Goals by Quarter</th>
                                         <th colspan="3" class="foul-col">Fouls</th>
                                     </tr>
@@ -312,7 +380,7 @@
                                     <tr><th colspan="7" class="team-header-th" style="background-color: #2c3e50; color: white;">DARK: <span id="table-name-dark">Dark Team</span></th></tr>
                                     <tr>
                                         <th rowspan="2">Cap</th>
-                                        <th rowspan="2" style="width: 120px;">Name</th>
+                                        <th rowspan="2" class="name-cell">Name</th>
                                         <th colspan="5" class="goal-col">Goals by Quarter</th>
                                         <th colspan="3" class="foul-col">Fouls</th>
                                     </tr>
@@ -327,13 +395,13 @@
                     </tr>
                 </table>
             </div>
-            <p style="font-size: 0.8em; color: #7f8c8d; margin-top: 10px;">*Tap any Name or Cap # to manually edit. The AI pre-processes images, but human verification is always best!</p>
+            <p style="font-size: 0.85em; color: #7f8c8d; margin-top: 10px;">*Tap any Name or Cap # to manually edit. The AI pre-processes images, but human verification is always best!</p>
         </div>
     </div>
 
     <div id="keypad-modal" class="modal-overlay hidden">
         <div class="keypad">
-            <h3 id="keypad-title" style="color: #333;">Enter Cap #</h3>
+            <h3 id="keypad-title" style="color: #333; margin-top:0;">Enter Cap #</h3>
             <div id="keypad-display" class="keypad-display"></div>
             <div class="keys">
                 <button onclick="pressKey(1)">1</button>
@@ -356,7 +424,7 @@
     <div id="foul-warning-modal" class="modal-overlay hidden">
         <div class="warning-box">
             <h1>🚨</h1>
-            <h2>PLAYER DISQUALIFIED</h2>
+            <h2 style="font-size: 1.8em;">PLAYER DISQUALIFIED</h2>
             <p id="foul-warning-text" style="font-size: 1.5em; font-weight: bold;"></p>
             <p>Wave the red flag. This player has 3 major fouls.</p>
             <button onclick="closeWarning()">Acknowledge</button>
@@ -376,7 +444,11 @@
         var gameLog = [];
         var currentQuarter = 1;
         var currentRosterView = 'goals';
+        
+        // Settings flags
         var trackAssists = false;
+        var trackMisses = false;
+        var trackSteals = false;
         
         var isAssistMode = false;
         var pendingGoalCap = '';
@@ -415,11 +487,46 @@
             } catch(e) { console.error(e); }
         }
 
-        // --- SMARTER OCR & CAMERA LOGIC ---
+        // --- NEW: CSV EXPORT LOGIC ---
+        function exportToCSV() {
+            try {
+                var csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "WATER POLO GAME LOG\n";
+                csvContent += "White Team:," + whiteTeamName + "\n";
+                csvContent += "Dark Team:," + darkTeamName + "\n\n";
+                
+                csvContent += "Time,Quarter,Team,Cap,Event/Remark\n";
+                
+                for(var i=0; i<gameLog.length; i++) {
+                    var entry = gameLog[i];
+                    if (entry.isDivider) {
+                        csvContent += entry.text + ",,,,\n";
+                    } else {
+                        csvContent += entry.time + "," + entry.quarterIndex + "," + entry.fullTeam + "," + entry.cap + "," + entry.remark + "\n";
+                    }
+                }
+                
+                var encodedUri = encodeURI(csvContent);
+                var link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                
+                var date = new Date();
+                var filename = "WP_GameLog_" + date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + ".csv";
+                link.setAttribute("download", filename);
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch(e) {
+                alert("Failed to export CSV: " + e.message);
+            }
+        }
+
+        // --- ENHANCED OCR & CAMERA LOGIC ---
         function openCamera(team) {
             try {
                 currentScanTeam = team;
-                var titleText = team === 'Combo' ? "Take Photo of BOTH Teams" : "Take Photo of " + team + " Roster";
+                var titleText = team === 'Combo' ? "Photo of BOTH Teams" : "Photo of " + team + " Roster";
                 document.getElementById('camera-title').innerText = titleText;
                 document.getElementById('camera-modal').classList.remove('hidden');
                 
@@ -431,7 +538,7 @@
                     })
                     .catch(function(err) {
                         closeCamera();
-                        alert("Camera blocked. You can manually type names once the game starts.");
+                        alert("Camera blocked or unavailable. You can manually type names once the game starts.");
                     });
                 } else {
                     closeCamera();
@@ -452,16 +559,15 @@
                 var ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // IMAGE PRE-PROCESSING FOR BETTER OCR
-                // This washes out grid lines and boosts handwritten ink
+                // Image Pre-processing for OCR (High contrast black & white)
                 var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 var data = imgData.data;
                 for (var i = 0; i < data.length; i += 4) {
-                    var avg = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114); // Grayscale
-                    var val = avg < 130 ? 0 : 255; // Threshold High Contrast
-                    data[i] = val;     // red
-                    data[i + 1] = val; // green
-                    data[i + 2] = val; // blue
+                    var avg = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114); 
+                    var val = avg < 140 ? 0 : 255; 
+                    data[i] = val;    
+                    data[i + 1] = val; 
+                    data[i + 2] = val; 
                 }
                 ctx.putImageData(imgData, 0, 0);
 
@@ -484,24 +590,20 @@
                 var text = result.data.text;
                 var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 2; });
                 
-                // TEXT CLEANER: Removes weird symbols and empty grid reads
                 var cleanLines = [];
                 for(var i=0; i<lines.length; i++) {
                     var upper = lines[i].toUpperCase();
-                    // Ignore common headers
-                    if(upper.includes("WATER") || upper.includes("POLO") || upper.includes("SCORE") || upper.includes("CAP") || upper.includes("FOUL") || upper.includes("GOAL") || upper.includes("TIME")) continue;
+                    if(upper.includes("WATER") || upper.includes("POLO") || upper.includes("SCORE") || upper.includes("CAP") || upper.includes("FOUL") || upper.includes("GOAL") || upper.includes("TIME") || upper.includes("TEAM") || upper.includes("PLAYER") || upper.includes("PERIOD") || upper.includes("NOTATION") || upper.includes("REMARKS")) continue;
                     
-                    // Strip weird punctuation entirely, keep only words and numbers
-                    var cleanStr = lines[i].replace(/[^\w\s]/g, '').trim();
+                    var cleanStr = lines[i].replace(/[^A-Za-z0-9\s\,\.\-]/g, '').trim();
                     if (cleanStr.length === 0) continue;
 
-                    // Look for numbers followed by text
-                    var rosterMatch = cleanStr.match(/^(\d{1,2})\s+(.*)/);
+                    var rosterMatch = cleanStr.match(/^([lI1-9]{1,2}[A-Za-z]?)\s+([A-Za-z\s\,\.\-]{2,})/);
                     if (rosterMatch) {
-                        cleanLines.push({ cap: rosterMatch[1], name: rosterMatch[2].substring(0,20) });
-                    } else if (cleanStr.length > 3 && !cleanStr.match(/^[\d\W]+$/)) {
-                        // If it's a word but no number, log it anyway
-                        cleanLines.push({ cap: "", name: cleanStr.substring(0,20) });
+                        var cleanCap = rosterMatch[1].replace(/[lI]/g, '1');
+                        cleanLines.push({ cap: cleanCap, name: rosterMatch[2].substring(0,20).trim() });
+                    } else if (cleanStr.length > 3 && !cleanStr.match(/^[\d]+$/)) {
+                        cleanLines.push({ cap: "", name: cleanStr.substring(0,20).trim() });
                     }
                 }
 
@@ -621,8 +723,10 @@
         }
 
         function resetShotClock() {
-            shotTime = 30;
-            updateDisplay();
+            if (shotTime !== 'OFF') {
+                shotTime = 30;
+                updateDisplay();
+            }
         }
 
         // --- START & RESET GAME LOGIC ---
@@ -649,6 +753,17 @@
                 shotTime = 30;
                 
                 trackAssists = (document.getElementById('track-assists').value === 'yes');
+                trackMisses = (document.getElementById('track-misses').value === 'yes');
+                trackSteals = (document.getElementById('track-steals').value === 'yes');
+                
+                if (trackMisses) {
+                    document.getElementById('btn-w-miss').classList.remove('hidden');
+                    document.getElementById('btn-d-miss').classList.remove('hidden');
+                }
+                if (trackSteals) {
+                    document.getElementById('btn-w-steal').classList.remove('hidden');
+                    document.getElementById('btn-d-steal').classList.remove('hidden');
+                }
                 
                 updateScoreboards();
                 updateRealTimeScorecard(); 
@@ -683,10 +798,12 @@
                 document.getElementById('combo-status').innerText = '';
                 document.getElementById('dark-status').innerText = '';
                 document.getElementById('white-status').innerText = '';
-                document.getElementById('age-group').value = "6";
-                document.getElementById('quarter-length').value = "6";
-                document.getElementById('track-assists').value = "no";
                 document.getElementById('rt-progress-body').innerHTML = '';
+                
+                document.getElementById('btn-w-miss').classList.add('hidden');
+                document.getElementById('btn-d-miss').classList.add('hidden');
+                document.getElementById('btn-w-steal').classList.add('hidden');
+                document.getElementById('btn-d-steal').classList.add('hidden');
                 
                 setScorecardView('all'); 
                 document.getElementById('dashboard-screen').classList.add('hidden');
@@ -740,6 +857,7 @@
                 var entry = gameLog[i];
                 if (entry.isDivider) continue;
                 if (entry.remark === 'TO') continue;
+                if (entry.remark === 'S/M' || entry.remark === 'ST') continue; 
                 
                 var team = entry.fullTeam;
                 var cap = entry.cap;
@@ -941,7 +1059,10 @@
         // --- KEYPAD & EVENT LOGIC ---
         function openKeypad(team, event) {
             try {
-                if (isRunning) toggleClock(); 
+                // UPDATE: Do not stop clock for live action events
+                if (isRunning && event !== 'Shot Miss' && event !== 'Steal') {
+                    toggleClock(); 
+                }
                 pendingTeam = team;
                 pendingEvent = event;
                 currentCapInput = '';
@@ -1061,6 +1182,10 @@
                     }
                     goalTracker[pendingTeam][primaryCap][qIndex]++;
                     teamScore[pendingTeam][qIndex]++;
+                } else if (pendingEvent === 'Shot Miss') {
+                    remark = 'S/M';
+                } else if (pendingEvent === 'Steal') {
+                    remark = 'ST';
                 }
 
                 gameLog.push({ 
