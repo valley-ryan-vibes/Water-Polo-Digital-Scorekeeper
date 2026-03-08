@@ -163,22 +163,14 @@
         <h2 style="margin-top:0;">Pre-Game Setup</h2>
         
         <div class="settings-group">
+            <h4 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;">General Info:</h4>
             <label for="setup-white-name" style="font-weight: bold; color: #7f8c8d;">WHITE Team Name:</label>
             <input type="text" id="setup-white-name" value="White Team" placeholder="e.g., Davis WPC">
             
             <label for="setup-dark-name" style="font-weight: bold; color: #34495e;">DARK Team Name:</label>
             <input type="text" id="setup-dark-name" value="Dark Team" placeholder="e.g., Newport">
-        </div>
-
-        <div class="settings-group">
-            <label for="age-group" style="font-weight: bold;">Age Group:</label>
-            <select id="age-group" onchange="updateDefaultTime()">
-                <option value="5">10U / 12U</option>
-                <option value="6" selected>14U</option>
-                <option value="7">16U / 18U / High School</option>
-            </select>
-
-            <label for="quarter-length" style="font-weight: bold;">Quarter Length (Override):</label>
+            
+            <label for="quarter-length" style="font-weight: bold; margin-top:10px; display:block;">Quarter Length:</label>
             <select id="quarter-length">
                 <option value="5">5 Minutes</option>
                 <option value="6" selected>6 Minutes</option>
@@ -187,11 +179,21 @@
             </select>
         </div>
 
+        <div class="settings-group" style="background-color: #fcf3cf; border-color: #f1c40f;">
+            <h4 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;">Scorekeeping Mode:</h4>
+            <label for="time-mode" style="font-weight: bold;">Select App Layout:</label>
+            <select id="time-mode">
+                <option value="live" selected>Full Desk (Live Game & Shot Clocks)</option>
+                <option value="manual">Virtual Scorecard (No Clocks, Manual Time Entry)</option>
+            </select>
+            <p style="font-size: 0.85em; color: #555; margin-top: 0;">*Virtual Scorecard mode hides the live timers and lets you manually type the exact game time when logging events.</p>
+        </div>
+
         <div class="settings-group">
             <h4 style="margin-top: 0; margin-bottom: 10px; color: #2c3e50;">Advanced Stat Tracking:</h4>
             <label for="track-assists" style="font-weight: bold;">Track Assists (Post-Goal Pop-up):</label>
             <select id="track-assists">
-                <option value="no" selected>No (Standard)</option>
+                <option value="no" selected>No</option>
                 <option value="yes">Yes</option>
             </select>
 
@@ -245,11 +247,13 @@
             </div>
             
             <div class="clocks-container">
-                <div class="clock-section">
-                    <div id="quarter-display" class="quarter-badge">Q1</div>
+                <div class="clock-section" id="quarter-section" style="justify-content: center; display: flex;">
+                    <div id="quarter-display" class="quarter-badge" style="font-size: 1.5em; padding: 10px 20px;">Q1</div>
+                </div>
+                <div class="clock-section" id="game-clock-section">
                     <div id="game-clock" class="clock" onclick="toggleClock()">6:00</div>
                 </div>
-                <div class="clock-section">
+                <div class="clock-section" id="shot-clock-section">
                     <div style="font-weight: bold; margin-bottom: 5px; letter-spacing:1px;">SHOT</div>
                     <div id="shot-clock" class="clock shot-clock" onclick="resetShotClock()">30</div>
                 </div>
@@ -264,7 +268,7 @@
 
         <button class="btn-clock" onclick="toggleClock()" id="clock-btn">START CLOCKS</button>
 
-        <div class="clock-controls no-print">
+        <div class="clock-controls no-print" id="clock-controls-menu">
             <button class="clock-btn-sm clock-btn-edit" onclick="editGameClock()">✏️ Edit Game Clock</button>
             <button class="clock-btn-sm clock-btn-shot" onclick="setShotClock(30)">🔄 Shot 30s</button>
             <button class="clock-btn-sm clock-btn-shot" onclick="setShotClock(20)">🔄 Shot 20s</button>
@@ -446,6 +450,7 @@
         var currentRosterView = 'goals';
         
         // Settings flags
+        var timeMode = 'live';
         var trackAssists = false;
         var trackMisses = false;
         var trackSteals = false;
@@ -487,7 +492,7 @@
             } catch(e) { console.error(e); }
         }
 
-        // --- NEW: CSV EXPORT LOGIC ---
+        // --- NEW: CSV EXPORT LOGIC WITH DYNAMIC FILENAMES & SCORE SUMMARY ---
         function exportToCSV() {
             try {
                 var csvContent = "data:text/csv;charset=utf-8,";
@@ -495,6 +500,20 @@
                 csvContent += "White Team:," + whiteTeamName + "\n";
                 csvContent += "Dark Team:," + darkTeamName + "\n\n";
                 
+                // Add Score Summary to CSV
+                csvContent += "SCORE SUMMARY\n";
+                csvContent += "Team,Q1,Q2,Q3,Q4,OT,FINAL\n";
+                
+                var w1 = teamScore['White'][1] || 0, w2 = teamScore['White'][2] || 0, w3 = teamScore['White'][3] || 0, w4 = teamScore['White'][4] || 0, w5 = teamScore['White'][5] || 0;
+                var wTotal = w1 + w2 + w3 + w4 + w5;
+                csvContent += whiteTeamName + "," + w1 + "," + w2 + "," + w3 + "," + w4 + "," + w5 + "," + wTotal + "\n";
+                
+                var d1 = teamScore['Dark'][1] || 0, d2 = teamScore['Dark'][2] || 0, d3 = teamScore['Dark'][3] || 0, d4 = teamScore['Dark'][4] || 0, d5 = teamScore['Dark'][5] || 0;
+                var dTotal = d1 + d2 + d3 + d4 + d5;
+                csvContent += darkTeamName + "," + d1 + "," + d2 + "," + d3 + "," + d4 + "," + d5 + "," + dTotal + "\n\n";
+                
+                // Add Play-by-Play Log
+                csvContent += "GAME LOG\n";
                 csvContent += "Time,Quarter,Team,Cap,Event/Remark\n";
                 
                 for(var i=0; i<gameLog.length; i++) {
@@ -510,10 +529,15 @@
                 var link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
                 
+                // Dynamic Filename creation
                 var date = new Date();
-                var filename = "WP_GameLog_" + date.getFullYear() + "-" + (date.getMonth()+1) + "-" + date.getDate() + ".csv";
-                link.setAttribute("download", filename);
+                var dateString = date.getFullYear() + "-" + (date.getMonth()+1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
                 
+                var safeWhite = whiteTeamName.replace(/[^a-z0-9]/gi, '_');
+                var safeDark = darkTeamName.replace(/[^a-z0-9]/gi, '_');
+                var filename = safeWhite + "_vs_" + safeDark + "_" + dateString + ".csv";
+                
+                link.setAttribute("download", filename);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -559,7 +583,6 @@
                 var ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
-                // Image Pre-processing for OCR (High contrast black & white)
                 var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 var data = imgData.data;
                 for (var i = 0; i < data.length; i += 4) {
@@ -752,10 +775,23 @@
                 gameTime = selectedMinutes * 60;
                 shotTime = 30;
                 
+                timeMode = document.getElementById('time-mode').value;
                 trackAssists = (document.getElementById('track-assists').value === 'yes');
                 trackMisses = (document.getElementById('track-misses').value === 'yes');
                 trackSteals = (document.getElementById('track-steals').value === 'yes');
                 
+                if (timeMode === 'manual') {
+                    document.getElementById('game-clock-section').classList.add('hidden');
+                    document.getElementById('shot-clock-section').classList.add('hidden');
+                    document.getElementById('clock-btn').classList.add('hidden');
+                    document.getElementById('clock-controls-menu').classList.add('hidden');
+                } else {
+                    document.getElementById('game-clock-section').classList.remove('hidden');
+                    document.getElementById('shot-clock-section').classList.remove('hidden');
+                    document.getElementById('clock-btn').classList.remove('hidden');
+                    document.getElementById('clock-controls-menu').classList.remove('hidden');
+                }
+
                 if (trackMisses) {
                     document.getElementById('btn-w-miss').classList.remove('hidden');
                     document.getElementById('btn-d-miss').classList.remove('hidden');
@@ -813,18 +849,21 @@
 
         function advanceQuarter() {
             try {
-                if (isRunning) toggleClock();
+                if (timeMode === 'live' && isRunning) toggleClock();
+                
                 gameLog.push({ isDivider: true, text: "--- END OF Q" + currentQuarter + " ---" });
                 currentQuarter++;
                 
                 var quarterText = currentQuarter > 4 ? "OT" : "Q" + currentQuarter;
                 document.getElementById('quarter-display').innerText = quarterText;
                 
-                var selectedMinutes = parseInt(document.getElementById('quarter-length').value);
-                gameTime = selectedMinutes * 60;
-                shotTime = 30;
+                if (timeMode === 'live') {
+                    var selectedMinutes = parseInt(document.getElementById('quarter-length').value);
+                    gameTime = selectedMinutes * 60;
+                    shotTime = 30;
+                    updateDisplay();
+                }
                 
-                updateDisplay();
                 updateRealTimeScorecard();
                 updateScoreboards();
             } catch(e) { console.error(e); }
@@ -1059,8 +1098,7 @@
         // --- KEYPAD & EVENT LOGIC ---
         function openKeypad(team, event) {
             try {
-                // UPDATE: Do not stop clock for live action events
-                if (isRunning && event !== 'Shot Miss' && event !== 'Steal') {
+                if (timeMode === 'live' && isRunning && event !== 'Shot Miss' && event !== 'Steal') {
                     toggleClock(); 
                 }
                 pendingTeam = team;
@@ -1096,11 +1134,19 @@
 
         function recordTimeout(team) {
             try {
-                if (isRunning) toggleClock();
-                var m = Math.floor(gameTime / 60);
-                var s = gameTime % 60;
-                var secString = s < 10 ? "0" + s : s;
-                var timeString = m + ":" + secString;
+                var timeString = "";
+                
+                if (timeMode === 'manual') {
+                    var manualTime = prompt("Enter clock time for " + team + " Timeout (e.g., 4:32):", "");
+                    if (manualTime === null) return; 
+                    timeString = manualTime.trim();
+                } else {
+                    if (isRunning) toggleClock();
+                    var m = Math.floor(gameTime / 60);
+                    var s = gameTime % 60;
+                    var secString = s < 10 ? "0" + s : s;
+                    timeString = m + ":" + secString;
+                }
                 
                 gameLog.push({ time: timeString, team: team.charAt(0), fullTeam: team, cap: '-', remark: 'TO', quarterIndex: 0 });
                 updateRealTimeScorecard();
@@ -1152,13 +1198,20 @@
                 if (!ensureCap(primaryCap)) return;
                 if (assistCap && !ensureCap(assistCap)) return;
                 
+                var timeString = "";
+                if (timeMode === 'manual') {
+                    var manualTime = prompt("Enter game clock time for this event (e.g., 4:32):", "");
+                    if (manualTime === null) return; 
+                    timeString = manualTime.trim();
+                } else {
+                    var m = Math.floor(gameTime / 60);
+                    var s = gameTime % 60;
+                    var secString = s < 10 ? "0" + s : s;
+                    timeString = m + ":" + secString;
+                }
+
                 initScorecardRosters(); 
                 setRosterView(currentRosterView);
-
-                var m = Math.floor(gameTime / 60);
-                var s = gameTime % 60;
-                var secString = s < 10 ? "0" + s : s;
-                var timeString = m + ":" + secString;
 
                 var remark = 'G';
                 if (pendingEvent === 'Exclusion' || pendingEvent === 'Penalty') {
@@ -1197,7 +1250,7 @@
                     quarterIndex: qIndex 
                 });
                 
-                resetShotClock();
+                if (timeMode === 'live') resetShotClock();
                 closeKeypad();
                 updateRealTimeScorecard();
                 updateScoreboards();
